@@ -25,13 +25,22 @@ class Section:
 
         return self.element.attrib["id"]
 
+    def get_title(self):
+        title = self.element.find("title").text
+        return title if not title is None else ""
+
+    def get_text(self):
+        text = self.element.find("text").text
+        return text if not text is None else ""
+
 
     def get_fulltext(self):
         """
         Get full text of the document
         :return:
         """
-        return self.element.text_content()
+
+        return self.get_title() + " " + self.get_text()
 
 
     def get_sentences(self):

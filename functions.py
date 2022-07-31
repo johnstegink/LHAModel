@@ -1,6 +1,7 @@
 import hashlib
 import os
 import shutil
+import sys
 from pathlib import Path
 from lxml import etree as ET
 
@@ -90,7 +91,7 @@ def create_chunks_of_list(theList, chunk_size):
 
 def translate_language_code(language_code):
     """
-    Translate the language code to a language for nltk
+    Translate the language code to a language for nltk-data
     :param language_code:
     :return:
     """
@@ -103,3 +104,5 @@ def translate_language_code(language_code):
         raise (f"Unknow language '{language_code}")
 
 
+def show_message( message):
+    sys.stderr.write( message + "...\n")

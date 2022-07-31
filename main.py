@@ -1,11 +1,19 @@
 # Script to create embeddings from a document, similar to the LHA algorithm (Nikola I. Nikolov and Richard H.R. Hahnloser)
 
 import argparse
+import logging
+
 from texts.corpus import Corpus
 from tqdm import *
 import sys
 import functions
+from documentencoders.Sent2VecEncoder import Sent2VecEncoder
+import time
+import os
+from annoy import AnnoyIndex
 
+
+NUMBEROFTREES = 50
 
 def read_arguments():
     """
@@ -33,9 +41,26 @@ def read_arguments():
 
 # Main part of the script
 if __name__ == '__main__':
-    (inputdir, name, language, vectorsize, outputdir) = read_arguments()
-    corpus = Corpus(name=name, directory=inputdir)
+    (inputdir, name, language, vector_size, outputdir) = read_arguments()
 
+    functions.show_message("Reading corpus")
+    corpus = Corpus(name=name, directory=inputdir, language_code=language)
+    functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
+
+    start_total = time.time()
+
+    functions.show_message("Loading encoder")
+    encoder = Sent2VecEncoder(language, vector_size)
+    index = AnnoyIndex(encoder.get_vector_size(), "angular")
+    functions.show_message("Create index")
     with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:
         for document in corpus:
+            vector = encoder.embed_text( document.get_fulltext())
+            index.add_item(document.get_index(), vector)
             progress.update()
+
+    functions.show_message("Save index")
+    del encoder
+    index.build( NUMBEROFTREES)
+    index.save( os.path.join(outputdir, "annoy.index"))
+    functions.show_message("Done")
