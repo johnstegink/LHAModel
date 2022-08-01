@@ -1,6 +1,7 @@
 # Class to read a corpus in the Common Format and iterates through documents
 import functions
 from texts.document import Document
+from pathlib import Path
 
 class Corpus:
 
@@ -13,11 +14,13 @@ class Corpus:
         """
         self.name = name
         self.directory = directory
-        self.files = functions.read_all_files_from_directory( self.directory, "xml")
+
+        # Create a directory of filenames (without extensions) and their corresponding path
+        self.files = {Path(file).stem:file for file in functions.read_all_files_from_directory( self.directory, "xml")}
+        self.ids = list(self.files.keys())
+
         self.language_code = language_code
         self.language = functions.translate_language_code(language_code)
-        self.index2docid = {}
-        self.docid2index = {}
 
 
     def get_number_of_documents(self):
@@ -25,7 +28,7 @@ class Corpus:
         Returns the number of documents
         :return:
         """
-        return len(self.files)
+        return len(self.ids)
 
 
     def get_id_of_index(self, index):
@@ -34,7 +37,12 @@ class Corpus:
         :param index:
         :return:
         """
-        return self.index2docid[index]
+
+        if index >= len(self.ids):
+            raise(f"Index {index} too large, max: {len(self.ids)}")
+
+        return self.ids[index]
+
 
     def get_index_of_id(self, id):
         """
@@ -42,7 +50,8 @@ class Corpus:
         :param id:
         :return:
         """
-        return self.docid2index[id]
+
+        return self.ids.index( id)
 
 
     def __iter__(self):
@@ -50,7 +59,7 @@ class Corpus:
         Initialize the iterator
         :return:
         """
-        self.file_index = 0
+        self.id_index = 0
         return self
 
 
@@ -60,13 +69,19 @@ class Corpus:
         Next document from the corpus
         :return:
         """
-        if self.file_index < len( self.files):
-            document = Document( filename=self.files[self.file_index], language=self.language, index = self.file_index)
-            self.index2docid[document.get_index()] = document.get_id()
-            self.index2docid[document.get_id()] = document.get_index()
+        if self.id_index < len(self.ids):
+            document = self.getDocument( self.get_id_of_index( self.id_index))
 
-            self.file_index += 1  # Ready for the next document
+            self.id_index += 1  # Ready for the next document
             return document
 
         else:  # Done
             raise StopIteration
+
+
+    def getDocument(self, id):
+        if not id in self.files:
+            raise( f"Unknown id {id}")
+
+        document =  Document(filename=self.files[id], language=self.language, index=self.get_index_of_id( id))
+        return document

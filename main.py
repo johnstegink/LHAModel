@@ -1,19 +1,14 @@
 # Script to create embeddings from a document, similar to the LHA algorithm (Nikola I. Nikolov and Richard H.R. Hahnloser)
 
 import argparse
-import logging
 
 from texts.corpus import Corpus
-from tqdm import *
+from Distances.DistanceIndex import DistanceIndex
 import sys
-import functions
-from documentencoders.Sent2VecEncoder import Sent2VecEncoder
-import time
 import os
-from annoy import AnnoyIndex
+import functions
 
 
-NUMBEROFTREES = 50
 
 def read_arguments():
     """
@@ -34,7 +29,7 @@ def read_arguments():
         sys.stderr.write(f"Directory '{corpusdir}' doesn't contain any files\n")
         exit( 2)
 
-    functions.create_directory_if_not_exists( args["output"])
+    os.makedirs( args["output"], exist_ok=True)
 
     return (corpusdir, args["name"], args["language"], int(args["vectorsize"]), args["output"])
 
@@ -47,20 +42,5 @@ if __name__ == '__main__':
     corpus = Corpus(name=name, directory=inputdir, language_code=language)
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
-    start_total = time.time()
+    index = DistanceIndex(corpus=corpus,language=language,vector_size=vector_size,outputdir=outputdir)
 
-    functions.show_message("Loading encoder")
-    encoder = Sent2VecEncoder(language, vector_size)
-    index = AnnoyIndex(encoder.get_vector_size(), "angular")
-    functions.show_message("Create index")
-    with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:
-        for document in corpus:
-            vector = encoder.embed_text( document.get_fulltext())
-            index.add_item(document.get_index(), vector)
-            progress.update()
-
-    functions.show_message("Save index")
-    del encoder
-    index.build( NUMBEROFTREES)
-    index.save( os.path.join(outputdir, "annoy.index"))
-    functions.show_message("Done")
