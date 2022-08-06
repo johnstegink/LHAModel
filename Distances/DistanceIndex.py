@@ -16,7 +16,6 @@ class DistanceIndex:
         self.outputdir = outputdir
         self.vector_size = vector_size
         self.language = language
-        self.index_file = os.path.join(self.outputdir, ANNOYFILE)
         self.index = self.__load(self.index_file)
 
 

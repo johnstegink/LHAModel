@@ -7,6 +7,9 @@ from Distances.DistanceIndex import DistanceIndex
 import sys
 import os
 import functions
+from documentencoders.Sent2VecEncoder import Sent2VecEncoder
+from Distances.DocumentVectors import  DocumentVectors
+from tqdm import *
 
 
 
@@ -16,12 +19,12 @@ def read_arguments():
     :return:
     """
 
-    parser = argparse.ArgumentParser(description='Create an index fo document embeddings.')
+    parser = argparse.ArgumentParser(description='Create document embeddings.')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
     parser.add_argument('-n', '--name', help='Name of the corpus', required=True)
     parser.add_argument('-l', '--language', help='Language of the corpus, nl or en', required=True, choices=['en', 'nl'])
     parser.add_argument('-v', '--vectorsize', help='Size of the embedding vector', required=True, type=int)
-    parser.add_argument('-o', '--output', help='Output directory for the index', required=True)
+    parser.add_argument('-o', '--output', help='Output file for the index', required=True)
     args = vars(parser.parse_args())
 
     corpusdir = args["corpusdirectory"] if "corpusdirectory" in args else None
@@ -29,18 +32,33 @@ def read_arguments():
         sys.stderr.write(f"Directory '{corpusdir}' doesn't contain any files\n")
         exit( 2)
 
-    os.makedirs( args["output"], exist_ok=True)
+    # Create the output directory if it doesn't exist
+    outputdir = os.path.dirname(args["output"])
+    os.makedirs( outputdir, exist_ok=True)
 
     return (corpusdir, args["name"], args["language"], int(args["vectorsize"]), args["output"])
 
 
 # Main part of the script
 if __name__ == '__main__':
-    (inputdir, name, language, vector_size, outputdir) = read_arguments()
+    (inputdir, name, language, vector_size, output) = read_arguments()
 
     functions.show_message("Reading corpus")
     corpus = Corpus(name=name, directory=inputdir, language_code=language)
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
-    index = DistanceIndex(corpus=corpus,language=language,vector_size=vector_size,outputdir=outputdir)
+    functions.show_message("Loading encoder")
+    encoder = Sent2VecEncoder(language, vector_size)
+    functions.show_message("Document vectors")
+    documentvectors = DocumentVectors()
+    with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:
+        for document in corpus:
+            vector = encoder.embed_text(document.get_fulltext())
+            documentvectors.add( document.get_id(), vector)
+            progress.update()
+
+    functions.show_message("Save vectors")
+    del encoder
+    documentvectors.save( output)
+    functions.show_message("Vectors saved")
 
