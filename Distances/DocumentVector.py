@@ -23,3 +23,11 @@ class DocumentVector:
         :return:
         """
         return self.vector
+
+    def get_vector_size(self):
+        """
+        Determines the size of the vector
+        :return:
+        """
+
+        return len( self.vector)

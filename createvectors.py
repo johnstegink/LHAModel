@@ -24,7 +24,7 @@ def read_arguments():
     parser.add_argument('-n', '--name', help='Name of the corpus', required=True)
     parser.add_argument('-l', '--language', help='Language of the corpus, nl or en', required=True, choices=['en', 'nl'])
     parser.add_argument('-v', '--vectorsize', help='Size of the embedding vector', required=True, type=int)
-    parser.add_argument('-o', '--output', help='Output file for the index', required=True)
+    parser.add_argument('-o', '--output', help='Output file for the xml file with the documentvectors', required=True)
     args = vars(parser.parse_args())
 
     corpusdir = args["corpusdirectory"] if "corpusdirectory" in args else None
