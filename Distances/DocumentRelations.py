@@ -75,3 +75,11 @@ class DocumentRelations:
         else:  # Done
             raise StopIteration
 
+
+    def count(self):
+        """
+        Count the number of relations
+        :return:
+        """
+
+        return len(self.relations)

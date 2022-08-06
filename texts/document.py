@@ -77,3 +77,20 @@ class Document:
 
         else:  # Done
             raise StopIteration
+
+
+    def get_links(self):
+        """
+        Returns a list of tuples with the links
+        :return: [(id, similarity)] a list of tuples with the documentid of the destination and the similarity (0,1 or 2)
+        """
+
+        info = []
+        links = self.element.find("links")
+        if not links is None:
+            for link in links.findall("link"):
+                dest = link.attrib["id"]
+                similarity =  int(link.attrib["class"]) if "class" in link.attrib else 2
+                info.append( (dest, similarity))
+
+        return info

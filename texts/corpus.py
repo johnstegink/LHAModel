@@ -1,6 +1,7 @@
 # Class to read a corpus in the Common Format and iterates through documents
 import functions
 from texts.document import Document
+from texts.similarities import Similarities
 from pathlib import Path
 
 class Corpus:
@@ -85,3 +86,19 @@ class Corpus:
 
         document =  Document(filename=self.files[id], language=self.language, index=self.get_index_of_id( id))
         return document
+
+
+    def read_similarities(self):
+        """
+        Return a new similarities object with all similarities in this corpus
+        :return:
+        """
+
+        sim = Similarities()
+        for src in self.ids:
+            document = self.getDocument(src)
+            for (dest, similarity) in document.get_links():
+                sim.add( src, dest, similarity, True)
+                sim.add( dest, src, similarity, False)  # Optional
+
+        return sim
