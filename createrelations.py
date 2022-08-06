@@ -44,6 +44,7 @@ if __name__ == '__main__':
     relations = distance_index.calculate_relations( (float(distance) / 100.0))
     relations.save( output)
 
+    functions.show_message("Done")
 
     a = 0
 

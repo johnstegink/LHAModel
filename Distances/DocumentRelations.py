@@ -83,3 +83,18 @@ class DocumentRelations:
         """
 
         return len(self.relations)
+
+
+    def top(self, limit):
+        """
+        Returns a new Relations object with the top x relations, ordered by reversed distance
+        :param limit:
+        :return:
+        """
+
+        top = sorted( self.relations, key=(lambda rel: rel.get_distance() * -1))
+        nw = DocumentRelations()
+        for i in range(0, min(limit, len(top))):
+            nw.add( top[i].get_src(), top[i].get_dest(), top[i].get_distance())
+
+        return nw

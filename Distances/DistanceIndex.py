@@ -12,7 +12,7 @@ class DistanceIndex:
         self.index = AnnoyIndex( documentvectors.get_vector_size(), "angular")
         self.index_to_id = {}
         self.id_to_index = {}
-        self.search_k_multiply = 2
+        self.search_k_multiply = 20
 
     def build(self):
         """
@@ -51,7 +51,7 @@ class DistanceIndex:
                     if( cosine_distance >= minimal_distance):
                         dr.add(src=src_id, dest=self.index_to_id[dest_index], distance=cosine_distance)
 
-        return dr
+        return dr.top( nearest_lim)
 
     def cosine_sim(self, id1, id2):
         """
