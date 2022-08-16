@@ -2,6 +2,8 @@
 import os
 
 import sent2vec
+
+import functions
 from texts.clean import Cleaner
 
 from documentencoders.documentencoder import Documentencoder_base
@@ -39,4 +41,5 @@ class Sent2VecEncoder(Documentencoder_base):
         joined = " ".join( text) if type(text) == list else text
         clean = self.cleaner.clean_text(txt=joined, remove_stop=True, remove_digits=False, lower=False)
         vector = self.sent2vec.embed_sentence( clean)
-        return vector[0]            # return the first vector (there is only one)
+
+        return functions.normalize_vector( vector[0])            # return the first vector (there is only one)

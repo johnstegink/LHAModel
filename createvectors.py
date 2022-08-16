@@ -21,8 +21,6 @@ def read_arguments():
 
     parser = argparse.ArgumentParser(description='Create document embeddings.')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
-    parser.add_argument('-n', '--name', help='Name of the corpus', required=True)
-    parser.add_argument('-l', '--language', help='Language of the corpus, nl or en', required=True, choices=['en', 'nl'])
     parser.add_argument('-v', '--vectorsize', help='Size of the embedding vector', required=True, type=int)
     parser.add_argument('-o', '--output', help='Output file for the xml file with the documentvectors', required=True)
     args = vars(parser.parse_args())
@@ -36,19 +34,19 @@ def read_arguments():
     outputdir = os.path.dirname(args["output"])
     os.makedirs( outputdir, exist_ok=True)
 
-    return (corpusdir, args["name"], args["language"], int(args["vectorsize"]), args["output"])
+    return (corpusdir, int(args["vectorsize"]), args["output"])
 
 
 # Main part of the script
 if __name__ == '__main__':
-    (inputdir, name, language, vector_size, output) = read_arguments()
+    (inputdir, vector_size, output) = read_arguments()
 
     functions.show_message("Reading corpus")
-    corpus = Corpus(name=name, directory=inputdir, language_code=language)
+    corpus = Corpus(directory=inputdir)
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
     functions.show_message("Loading encoder")
-    encoder = Sent2VecEncoder(language, vector_size)
+    encoder = Sent2VecEncoder(corpus.get_language_code(), vector_size)
     functions.show_message("Document vectors")
     documentvectors = DocumentVectors()
     with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:

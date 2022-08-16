@@ -4,6 +4,7 @@ import shutil
 import sys
 from pathlib import Path
 from lxml import etree as ET
+import numpy as np
 
 
 def hash_string(to_be_hashed):
@@ -96,13 +97,68 @@ def translate_language_code(language_code):
     :return:
     """
     code = language_code.lower()
-    if code == 'en':
+    if code == 'en' or code == 'simple':
         return "english"
     elif code == 'nl':
         return 'dutch'
     else:
-        raise (f"Unknow language '{language_code}")
+        raise Exception (f"Unknown language '{language_code}'")
 
+def translate_language_into_code(language):
+    """
+    Translate the language for nltk-data into a language code
+    :param language:
+    :return:
+    """
+    lang = language.lower()
+    if lang == 'english':
+        return "en"
+    elif lang == 'dutch':
+        return 'nl'
+    else:
+        raise Exception (f"Unknown language '{lang}'")
 
 def show_message( message):
     sys.stderr.write( message + "...\n")
+
+def normalize_vector( vector):
+    """
+    Creates a unit vector of the given vector
+    :param vector: list of floats
+    :return: list of floats
+    """
+    v = np.array( vector)
+    norm = np.linalg.norm( v)
+    if norm == 0:
+        return vector
+    else:
+        return (v / norm).tolist()
+
+def write_corpus_info(corpusdir, name, language_code):
+    """
+    Write the corpus info
+    :param corpusdir:
+    :param name:
+    :param language_code:
+    :return:
+    """
+    root = ET.fromstring("<corpus></corpus>")
+    ET.SubElement( root, "name").text = name
+    ET.SubElement( root, "language_code").text = language_code
+
+    write_file( os.path.join( corpusdir, "corpus.info"), xml_as_string( root))
+
+
+def read_corpus_info(corpusdir):
+    """
+    Reads the corpus info
+    :param corpusdir:
+    :return: (name, language_code)
+    """
+
+    doc = ET.parse(os.path.join( corpusdir, "corpus.info"))
+    corpus = doc.getroot()
+    name = corpus.find("name").text
+    language_code = corpus.find("language_code").text
+
+    return (name, language_code)

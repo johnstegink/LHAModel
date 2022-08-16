@@ -2,6 +2,8 @@
 
 from Distances.DocumentRelation import DocumentRelation
 from lxml import etree as ET
+from html import escape
+
 import functions
 
 class DocumentRelations:
@@ -35,6 +37,35 @@ class DocumentRelations:
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))
+
+
+    def save_html(self, src_corpus, output, dest_corpus = None):
+        """
+        Save the relations as a html file
+        :param src_corpus: The originating corpus
+        :param output:
+        :param dest_corpus: The destination corpus
+        :return:
+        """
+
+        # Set the destination corpus
+        dst_corpus = dest_corpus if not dest_corpus is None else src_corpus
+
+        with open( output, "w", encoding="utf-8") as html:
+            html.write(f"<html>\n<head>\n<title>Relations</title>\n</head>")
+            html.write(f"<body>\n")
+            html.write(f"<table>\n")
+            html.write("<tr>\n<th>Source</th><th>Destination</th><th>Similarity</th></tr>")
+            for relation in self.relations:
+                src = src_corpus.getDocument(relation.get_src())
+                dest = dst_corpus.getDocument(relation.get_dest())
+
+                html.write("<tr>\n")
+                html.write(f"<td>{src.create_html_link(target='link1')}</td>\n")
+                html.write(f"<td>{dest.create_html_link(target='link2')}</td>\n")
+                html.write(f"<td>{relation.get_distance():0.2}</td>\n")
+                html.write("</tr>\n")
+            html.write("</table>\n</body>\n</html>\n")
 
 
     @staticmethod
@@ -83,18 +114,3 @@ class DocumentRelations:
         """
 
         return len(self.relations)
-
-
-    def top(self, limit):
-        """
-        Returns a new Relations object with the top x relations, ordered by reversed distance
-        :param limit:
-        :return:
-        """
-
-        top = sorted( self.relations, key=(lambda rel: rel.get_distance() * -1))
-        nw = DocumentRelations()
-        for i in range(0, min(limit, len(top))):
-            nw.add( top[i].get_src(), top[i].get_dest(), top[i].get_distance())
-
-        return nw

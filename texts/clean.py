@@ -92,6 +92,8 @@ class Cleaner():
         # Copy and covert to lowercase if neccesairy
         clean = txt.lower() if lower else txt
 
+        clean = clean.replace("=", " ").replace("*", " ")
+
         words = self.toktok(clean)
 
         # Remove stopwords and digits

@@ -6,22 +6,38 @@ from pathlib import Path
 
 class Corpus:
 
-    def __init__(self, name, directory, language_code):
+    def __init__(self, directory):
         """
         Read the corpus
-        :param name:
         :param directory:
-        :param language_code:
         """
-        self.name = name
+
         self.directory = directory
+        (name, language_code) = functions.read_corpus_info(directory)
+        self.name = name
+        self.language_code = language_code
 
         # Create a directory of filenames (without extensions) and their corresponding path
         self.files = {Path(file).stem:file for file in functions.read_all_files_from_directory( self.directory, "xml")}
         self.ids = list(self.files.keys())
 
-        self.language_code = language_code
         self.language = functions.translate_language_code(language_code)
+
+
+    def get_language(self):
+        """
+        Get the full name of the language
+        :return:
+        """
+        return self.language
+
+    def get_language_code(self):
+        """
+        Get the language code of the corpus
+        :return:
+        """
+        return self.language_code
+
 
 
     def get_number_of_documents(self):
@@ -81,6 +97,11 @@ class Corpus:
 
 
     def getDocument(self, id):
+        """
+        Read the document by id
+        :param id: 
+        :return: 
+        """""
         if not id in self.files:
             raise( f"Unknown id {id}")
 

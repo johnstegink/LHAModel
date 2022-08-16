@@ -44,7 +44,7 @@ def evaluate( similarities, relations, sim1):
 
 
     tp = len( rels.intersection(sim_pos))
-    fp = len( rels.difference( sim_pos))
+    fp = len( rels.intersection(sim_neg))
     fn = len( sim_pos.difference( rels))
 
     return (tp, fp, fn)
@@ -57,8 +57,6 @@ def read_arguments():
 
     parser = argparse.ArgumentParser(description='Evaluate the score.')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
-    parser.add_argument('-n', '--name', help='Name of the corpus', required=True)
-    parser.add_argument('-l', '--language', help='Language of the corpus, nl or en', required=True, choices=['en', 'nl'])
     parser.add_argument('-i', '--relationsxml', help='Xml file containing document relations', required=True)
     parser.add_argument('-s', '--similarity_1', help="ignore = ignore similarity 1, positive or negative", choices=["positive", "negative"], default="positive")
     args = vars(parser.parse_args())
@@ -68,15 +66,15 @@ def read_arguments():
         sys.stderr.write(f"Directory '{corpusdir}' doesn't contain any files\n")
         exit( 2)
 
-    return (corpusdir, args["name"], args["language"], args["relationsxml"], args["similarity_1"])
+    return (corpusdir, args["relationsxml"], args["similarity_1"])
 
 
 # Main part of the script
 if __name__ == '__main__':
-    (inputdir, name, language, input, sim1) = read_arguments()
+    (inputdir, input, sim1) = read_arguments()
 
     functions.show_message("Reading corpus")
-    corpus = Corpus(name=name, directory=inputdir, language_code=language)
+    corpus = Corpus(directory=inputdir)
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
     functions.show_message("Reading similarities")

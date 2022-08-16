@@ -2,6 +2,10 @@
 import functions
 from lxml import etree as ET
 from texts.section import Section
+from html import escape
+import urllib.parse
+import html
+
 
 class Document:
 
@@ -94,3 +98,14 @@ class Document:
                 info.append( (dest, similarity))
 
         return info
+
+    def create_html_link(self, target="_self"):
+        """
+        Creates a HTML link to the wikipedia
+        :return:
+        """
+
+        title = self.get_title()
+        language_code = functions.translate_language_into_code(self.language)
+        url = f"https://{language_code}.wikipedia.org/wiki/{urllib.parse.quote(title)}"
+        return f"<a href='{html.escape(url)}' target='{target}'>{html.escape(self.get_title())} [{self.get_id()}]</a>"

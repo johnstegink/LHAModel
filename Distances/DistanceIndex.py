@@ -1,4 +1,5 @@
 # Class that contains functionality for computing the distance
+import numpy as np
 
 from Distances.DocumentRelations import DocumentRelations
 from annoy import AnnoyIndex
@@ -12,7 +13,7 @@ class DistanceIndex:
         self.index = AnnoyIndex( documentvectors.get_vector_size(), "angular")
         self.index_to_id = {}
         self.id_to_index = {}
-        self.search_k_multiply = 20
+        self.search_k_multiply = 2
 
     def build(self):
         """
@@ -31,27 +32,35 @@ class DistanceIndex:
         self.index.build(NUMBEROFTREES)
 
 
-    def calculate_relations(self, minimal_distance, nearest_lim=2):
+    def calculate_relations(self, minimal_similarity, nearest_lim=2, second_index=None):
         """
         Determine the relations between the documents given the minimal distance
-        :param minimal_distance: value between 0 and 1
+        :param minimal_similarity: value between 0 and 1
+        :param second_index: The name of the index to compare to, if ommitted the index is compared to itself
+        :param nearest_lim: Limit
         :return: a object with document relations
         """
 
         dr = DocumentRelations()
+        index_to_compare_to = second_index if not second_index is None else self
+
         for dv in self.documentvectors:
             src_id = dv.get_id()
+            vector = np.array( dv.get_vector())
             src_index = self.id_to_index[src_id]
-            (dest_indexes, distances) = self.index.get_nns_by_item(i=src_index,n=nearest_lim * self.search_k_multiply, include_distances=True)
-            for i in range(0, len(dest_indexes)):
-                distance = distances[i]
-                dest_index = dest_indexes[i]
-                if distance > 0  and dest_index != src_index :
-                    cosine_distance = self.cosine_sim(src_id, self.index_to_id[dest_index])
-                    if( cosine_distance >= minimal_distance):
-                        dr.add(src=src_id, dest=self.index_to_id[dest_index], distance=cosine_distance)
 
-        return dr.top( nearest_lim)
+            (dest_indexes, distances) = index_to_compare_to.index.get_nns_by_vector(vector,n=nearest_lim + 1, search_k=(nearest_lim + 1)* self.search_k_multiply, include_distances=True)
+            similarities = 1.0 - np.array( distances)
+
+            added = 0
+            for (dest_index, similarity) in zip( dest_indexes, similarities):
+                if similarity > 0  and (second_index is None or dest_index != src_index):
+                    if( float(similarity) >= minimal_similarity) and added < nearest_lim:
+                        added += 1
+                        dr.add(src=src_id, dest=index_to_compare_to.index_to_id[dest_index], distance=float(similarity))
+
+        return dr
+
 
     def cosine_sim(self, id1, id2):
         """
