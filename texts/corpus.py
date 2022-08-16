@@ -31,6 +31,13 @@ class Corpus:
         """
         return self.language
 
+    def get_name(self):
+        """
+        Get the name of the corpus
+        :return:
+        """
+        return self.name
+
     def get_language_code(self):
         """
         Get the language code of the corpus

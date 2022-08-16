@@ -2,8 +2,7 @@
 
 from Distances.DocumentRelation import DocumentRelation
 from lxml import etree as ET
-from html import escape
-
+import html
 import functions
 
 class DocumentRelations:
@@ -51,21 +50,21 @@ class DocumentRelations:
         # Set the destination corpus
         dst_corpus = dest_corpus if not dest_corpus is None else src_corpus
 
-        with open( output, "w", encoding="utf-8") as html:
-            html.write(f"<html>\n<head>\n<title>Relations</title>\n</head>")
-            html.write(f"<body>\n")
-            html.write(f"<table>\n")
-            html.write("<tr>\n<th>Source</th><th>Destination</th><th>Similarity</th></tr>")
+        with open( output, "w", encoding="utf-8") as htmlfile:
+            htmlfile.write(f"<html>\n<head>\n<title>Relations</title>\n</head>")
+            htmlfile.write(f"<body>\n")
+            htmlfile.write(f"<table>\n")
+            htmlfile.write(f"<tr>\n<th>{html.escape(src_corpus.get_name())}</th><th>{html.escape(dst_corpus.get_name())}</th><th>Similarity</th></tr>")
             for relation in self.relations:
                 src = src_corpus.getDocument(relation.get_src())
                 dest = dst_corpus.getDocument(relation.get_dest())
 
-                html.write("<tr>\n")
-                html.write(f"<td>{src.create_html_link(target='link1')}</td>\n")
-                html.write(f"<td>{dest.create_html_link(target='link2')}</td>\n")
-                html.write(f"<td>{relation.get_distance():0.2}</td>\n")
-                html.write("</tr>\n")
-            html.write("</table>\n</body>\n</html>\n")
+                htmlfile.write("<tr>\n")
+                htmlfile.write(f"<td>{src.create_html_link(target='link1')}</td>\n")
+                htmlfile.write(f"<td>{dest.create_html_link(target='link2')}</td>\n")
+                htmlfile.write(f"<td>{relation.get_distance():0.2}</td>\n")
+                htmlfile.write("</tr>\n")
+            htmlfile.write("</table>\n</body>\n</html>\n")
 
 
     @staticmethod
