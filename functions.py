@@ -50,7 +50,7 @@ def read_file(filename):
     :return: contents of file
     """
 
-    file = open( filename, mode="r", encoding="utf-8")
+    file = open( filename, mode="r", encoding="utf-8-sig")
     contents = file.read()
     file.close()
 
@@ -65,7 +65,7 @@ def write_file(filename, contents):
     :return: -
     """
 
-    file = open( filename, mode="w", encoding="utf-8")
+    file = open( filename, mode="w", encoding="utf-8-sig")
     file.write( contents)
     file.close()
 

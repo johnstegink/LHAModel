@@ -110,7 +110,7 @@ class Corpus:
         :return: 
         """""
         if not id in self.files:
-            raise( f"Unknown id {id}")
+            raise Exception( f"Unknown id {id}")
 
         document =  Document(filename=self.files[id], language=self.language, index=self.get_index_of_id( id))
         return document

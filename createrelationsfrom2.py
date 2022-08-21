@@ -34,6 +34,31 @@ def read_arguments():
 
     return (args["corpusdirectory1"], args["corpusdirectory2"], args["documentvectorfile1"], args["documentvectorfile2"], int(args["distance"]), args["output"], args["html"])
 
+def print_scores( relations, src_corpus, dst_corpus):
+    # 2 * (precision * recall) / (precision + recall)
+
+    tp = 0.0
+    fp = 0.0
+    retreived_documents = 0.0
+    for relation in relations:
+        src = src_corpus.getDocument(relation.get_src())
+        dst = dst_corpus.getDocument(relation.get_dest())
+
+        src_id = src.get_id()
+        dst_id = dst.get_id()
+
+        if( src_id == dst_id  and  src_id.startswith("a_")):
+            tp += 1.0
+
+        retreived_documents += 1.0
+
+    precision = tp / retreived_documents
+    recall = tp / 46.0
+    f1 = 2 * (precision * recall) / (precision + recall)
+
+    print(f"TP: {int(tp)}")
+    print(f"TP: {int(precision * 100)}%")
+    print(f"F1: {int(f1*100)}" )
 
 # Main part of the script
 if __name__ == '__main__':
@@ -60,6 +85,8 @@ if __name__ == '__main__':
     relations.save( output)
     if not html is None:
         relations.save_html( corpus1, html, corpus2)
+
+    print_scores( relations, corpus1, corpus2)
 
     functions.show_message("Done")
 

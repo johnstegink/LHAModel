@@ -26,10 +26,16 @@ class Section:
         return self.element.attrib["id"]
 
     def get_title(self):
+        if self.element.find("title") is None:
+            print( functions.xml_as_string( self.element))
+
         title = self.element.find("title").text
         return title if not title is None else ""
 
     def get_text(self):
+        if self.element.find("text") is None:
+            print( functions.xml_as_string( self.element))
+
         text = self.element.find("text").text
         return text if not text is None else ""
 

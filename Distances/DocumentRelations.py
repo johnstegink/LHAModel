@@ -51,7 +51,7 @@ class DocumentRelations:
         dst_corpus = dest_corpus if not dest_corpus is None else src_corpus
 
         with open( output, "w", encoding="utf-8") as htmlfile:
-            htmlfile.write(f"<html>\n<head>\n<title>Relations</title>\n</head>")
+            htmlfile.write(f"<html>\n<head>\n<meta charset='UTF-8'>\n<title>Relations</title>\n</head>")
             htmlfile.write(f"<body>\n")
             htmlfile.write(f"<table>\n")
             htmlfile.write(f"<tr>\n<th>{html.escape(src_corpus.get_name())}</th><th>{html.escape(dst_corpus.get_name())}</th><th>Similarity</th></tr>")

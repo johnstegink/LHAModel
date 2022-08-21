@@ -32,6 +32,7 @@ class DistanceIndex:
         self.index.build(NUMBEROFTREES)
 
 
+
     def calculate_relations(self, minimal_similarity, nearest_lim=2, second_index=None):
         """
         Determine the relations between the documents given the minimal distance
@@ -50,7 +51,7 @@ class DistanceIndex:
             src_index = self.id_to_index[src_id]
 
             (dest_indexes, distances) = index_to_compare_to.index.get_nns_by_vector(vector,n=nearest_lim + 1, search_k=(nearest_lim + 1)* self.search_k_multiply, include_distances=True)
-            similarities = 1.0 - np.array( distances)
+            similarities = 1.0 / (1.0 + np.array( distances))
 
             added = 0
             for (dest_index, similarity) in zip( dest_indexes, similarities):
