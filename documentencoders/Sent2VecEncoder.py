@@ -14,8 +14,8 @@ class Sent2VecEncoder(Documentencoder_base):
     SENT2VECMODELPATH = "Pretrained/Sent2Vec/wiki_unigrams.bin"
     SENT2VECVECTORSIZE = 600
 
-    def __init__(self, language_code, vector_size):
-        super(Sent2VecEncoder, self).__init__(language_code,vector_size)
+    def __init__(self, language_code):
+        super(Sent2VecEncoder, self).__init__(language_code)
 
         modelpath = os.path.join(os.getcwd(), Sent2VecEncoder.SENT2VECMODELPATH)
         self.sent2vec = sent2vec.Sent2vecModel()
@@ -39,7 +39,7 @@ class Sent2VecEncoder(Documentencoder_base):
         """
 
         joined = " ".join( text) if type(text) == list else text
-        clean = self.cleaner.clean_text(txt=joined, remove_stop=True, remove_digits=False, lower=False)
-        vector = self.sent2vec.embed_sentence( clean)
+        clean = self.cleaner.clean_text(txt=joined, remove_stop=True, remove_digits=True, lower=False)
+        vector = self.sent2vec.embed_sentence( " ".join(clean))
 
-        return functions.normalize_vector( vector[0])            # return the first vector (there is only one)
+        return vector[0]            # return the first vector (there is only one)

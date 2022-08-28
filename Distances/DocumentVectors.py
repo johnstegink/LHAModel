@@ -2,7 +2,9 @@
 
 from Distances.DocumentVector import DocumentVector
 from lxml import etree as ET
+import numpy as np
 import functions
+import re
 
 class DocumentVectors:
     def __init__(self):
@@ -55,20 +57,37 @@ class DocumentVectors:
 
 
     @staticmethod
-    def read(file):
+    def read(file, id_filter=None):
         """
         Returns a new DocumentVectors object filled with the info in the Xml file
         :param file: xml file, that was created with a save
+        :param id_filter: regular expression that filters the ids
         :return: DocumentVectors object
         """
         dv = DocumentVectors()
         root = ET.parse(file).getroot()
         for document in root:
             id = document.find("id").text
-            vector = [float(value) for value in document.find("vector").text.split(",")]
-            dv.add( id, vector)
+            if id_filter is None or id_filter.match( id):
+                vector = [float(value) for value in document.find("vector").text.split(",")]
+                dv.add( id, vector)
 
         return dv
+
+
+    def get_numpy_dict(self):
+        """
+        Get the vectors in a numpy dict with the ID as key and the vector as a numpy array
+        :return:
+        """
+
+        np_dict = {}
+        for vector in self.vectors.values():
+            np_dict[vector.documentid] = np.array(vector.vector, dtype=np.float32)
+
+        return np_dict;
+
+
 
     def __iter__(self):
         """

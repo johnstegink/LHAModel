@@ -2,14 +2,13 @@
 
 class Documentencoder_base:
 
-    def __init__(self, language_code, vector_size):
+    def __init__(self, language_code):
         """
         Initialisation of the embedder
         :param vector_dict:
         :param vector_size:
         :param language_code
         """
-        self.vector_size = vector_size
         self.language_code = language_code
 
 

@@ -8,6 +8,7 @@ import functions
 from Distances.DocumentVectors import  DocumentVectors
 from Distances.DistanceIndex import  DistanceIndex
 from texts.corpus import Corpus
+import re
 
 
 
@@ -60,13 +61,72 @@ def print_scores( relations, src_corpus, dst_corpus):
     print(f"TP: {int(precision * 100)}%")
     print(f"F1: {int(f1*100)}" )
 
+def print_scores_opt( relations, src_corpus, dst_corpus):
+    # 2 * (precision * recall) / (precision + recall)
+
+    found = set()
+    all = set()
+    for relation in relations:
+        src = src_corpus.getDocument(relation.get_src())
+        dst = dst_corpus.getDocument(relation.get_dest())
+
+        src_id = src.get_id()
+        dst_id = dst.get_id()
+
+        if( src_id == dst_id  and  src_id.startswith("a_")):
+            found.add( src_id)
+
+        all.add( src_id)
+
+    retreived_documents = float( len( all))
+    tp = float( len(found))
+
+    precision = tp / retreived_documents
+    recall = tp / 46.0
+    f1 = 2 * (precision * recall) / (precision + recall)
+
+    print(f"TP: {int(tp)}")
+    print(f"TP: {int(precision * 100)}%")
+    print(f"F1: {int(f1*100)}" )
+
+def print_scores_opt2( relations, src_corpus, dst_corpus):
+    # 2 * (precision * recall) / (precision + recall)
+
+    found = set()
+    all = set()
+    for relation in relations:
+        src = src_corpus.getDocument(relation.get_src())
+        dst = dst_corpus.getDocument(relation.get_dest())
+
+        src_id = src.get_id()
+        dst_id = dst.get_id()
+
+        if( src_id == dst_id  and  src_id.startswith("a_")):
+            found.add( src_id)
+
+        if( src_id.startswith("a_") or dst_id.startswith("a_")):
+            all.add( src_id)
+
+    retreived_documents = float( len( all))
+    tp = float( len(found))
+
+    precision = tp / retreived_documents
+    recall = tp / 46.0
+    f1 = 2 * (precision * recall) / (precision + recall)
+
+    print(f"TP: {int(tp)}")
+    print(f"TP: {int(precision * 100)}%")
+    print(f"F1: {int(f1*100)}" )
+
 # Main part of the script
 if __name__ == '__main__':
     (corpusdir1, corpusdir2, input1, input2, distance, output, html) = read_arguments()
 
     functions.show_message("Reading document vectors")
-    dv1 = DocumentVectors.read(input1)
-    dv2 = DocumentVectors.read(input2)
+
+    id_filter = re.compile(r"^[ar]")
+    dv1 = DocumentVectors.read(input1, id_filter=id_filter)
+    dv2 = DocumentVectors.read(input2, id_filter=id_filter)
     distance_index1 = DistanceIndex( dv1)
     distance_index2 = DistanceIndex( dv2)
 
@@ -81,12 +141,14 @@ if __name__ == '__main__':
     distance_index2.build()
 
     functions.show_message("Calculating distances")
-    relations = distance_index1.calculate_relations( (float(distance) / 100.0), nearest_lim=2, second_index=distance_index2)
+    relations = distance_index1.calculate_relations( (float(distance) / 100.0), second_index=distance_index2)
     relations.save( output)
     if not html is None:
         relations.save_html( corpus1, html, corpus2)
 
     print_scores( relations, corpus1, corpus2)
+    print_scores_opt( relations, corpus1, corpus2)
+    print_scores_opt2( relations, corpus1, corpus2)
 
     functions.show_message("Done")
 

@@ -5,6 +5,7 @@ from texts.section import Section
 from html import escape
 import urllib.parse
 import html
+import re
 
 
 class Document:
@@ -44,18 +45,36 @@ class Document:
         return title if not title is None else ""
 
 
-    def get_fulltext(self):
+    def get_fulltext(self, nr_of_sections = None):
         """
         Get full text of the document, by getting the title and texts of the sections
+        :nr_of_sections: optional the maximum number of sections to retrieve
         :return:
         """
 
         texts = []
         texts.append( self.get_title())
+        count = 0
         for section in self:
-            texts.append( section.get_fulltext())
+            if nr_of_sections is None or nr_of_sections < count:
+                texts.append( section.get_fulltext())
+                count += 1
 
         return " ".join( texts)
+
+
+    white_space_re = re.compile(r"\s+")
+
+    def get_fulltext_in_one_line(self, nr_of_sections = None):
+        """
+        Get full text of the document, by getting the title and texts of the sections in one line
+        :nr_of_sections: optional the maximum number of sections to retrieve
+        :param nr_of_sections:
+        :return:
+        """
+
+        text = self.get_fulltext(nr_of_sections=nr_of_sections)
+        return Document.white_space_re.sub( " ", text) + "\n"
 
 
     def __iter__(self):
@@ -99,13 +118,15 @@ class Document:
 
         return info
 
-    def create_html_link(self, target="_self"):
+    def create_html_link(self, target="_self", language_code=None):
         """
         Creates a HTML link to the wikipedia
+        :param target: Html target window
+        :param language_code: if not specified the language code from the corpus is used
         :return:
         """
 
         title = self.get_title()
-        language_code = functions.translate_language_into_code(self.language)
-        url = f"https://{language_code}.wikipedia.org/wiki/{urllib.parse.quote(title)}"
+        lang = functions.translate_language_into_code(self.language) if language_code is None else language_code
+        url = f"https://{lang}.wikipedia.org/wiki/{urllib.parse.quote(title)}"
         return f"<a href='{html.escape(url)}' target='{target}'>{html.escape(self.get_title())} [{self.get_id()}]</a>"

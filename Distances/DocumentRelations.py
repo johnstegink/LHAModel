@@ -9,15 +9,15 @@ class DocumentRelations:
     def __init__(self):
         self.relations = []
 
-    def add(self, src, dest, distance):
+    def add(self, src, dest, similarity):
         """
         Add a document relation
         :param src: source id
         :param dest: destination id
-        :param distance: the distance (between 0 and 1)
+        :param similarity: the distance (between 0 and 1)
         :return:
         """
-        relation = DocumentRelation( src, dest, distance)
+        relation = DocumentRelation(src, dest, similarity)
         self.relations.append( relation)
 
     def save(self, file):
@@ -60,7 +60,7 @@ class DocumentRelations:
                 dest = dst_corpus.getDocument(relation.get_dest())
 
                 htmlfile.write("<tr>\n")
-                htmlfile.write(f"<td>{src.create_html_link(target='link1')}</td>\n")
+                htmlfile.write(f"<td>{src.create_html_link(target='link1', language_code='simple')}</td>\n")
                 htmlfile.write(f"<td>{dest.create_html_link(target='link2')}</td>\n")
                 htmlfile.write(f"<td>{relation.get_distance():0.2}</td>\n")
                 htmlfile.write("</tr>\n")

@@ -1,9 +1,12 @@
 # Class that contains functionality for computing the distance
 import numpy as np
+import pandas as pd
+from tqdm import *
 
 from Distances.DocumentRelations import DocumentRelations
 from annoy import AnnoyIndex
 from scipy.spatial import distance as spdistance
+
 
 NUMBEROFTREES = 50
 
@@ -58,9 +61,40 @@ class DistanceIndex:
                 if similarity > 0  and (second_index is None or dest_index != src_index):
                     if( float(similarity) >= minimal_similarity) and added < nearest_lim:
                         added += 1
-                        dr.add(src=src_id, dest=index_to_compare_to.index_to_id[dest_index], distance=float(similarity))
+                        dr.add(src=src_id, dest=index_to_compare_to.index_to_id[dest_index], similarity=float(similarity))
 
         return dr
+
+    def calculate_relations_slow(self, minimal_similarity, second_index=None):
+        """
+        Determine the relations between the documents given the minimal distance, this is without using the ANN
+        :param minimal_similarity: value between 0 and 1
+        :param second_index: The name of the index to compare to, if ommitted the index is compared to itself
+        :param nearest_lim: Limit
+        :return: a object with document relations
+        """
+
+        vec1 = self.documentvectors.get_numpy_dict()
+        vec2 = second_index.documentvectors.get_numpy_dict() if not second_index is None else self
+
+        dr = DocumentRelations()
+        with tqdm(total=len(vec1.keys()), desc="Distance calculation") as progress:
+            for src_id in vec1.keys():
+                sims = []
+                for dest_id in vec2.keys():
+                    sim = 1. - spdistance.cosine( vec1[src_id], vec2[dest_id])
+                    if( sim >= minimal_similarity):
+                        sims.append( (dest_id, sim))
+
+                sims.sort( key=lambda x: x[1], reverse=True)
+
+                for (dest_id, sim) in sims[0:2]:
+                    dr.add(src=src_id, dest=dest_id, similarity=sim)
+
+                progress.update()
+
+        return dr
+
 
 
     def cosine_sim(self, id1, id2):

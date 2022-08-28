@@ -86,23 +86,23 @@ class Cleaner():
         :param lower:
         :param remove_digits:
         :param remove_stop:
-        :return: cleaned string
+        :return: cleaned list of words
         """
 
         # Copy and covert to lowercase if neccesairy
         clean = txt.lower() if lower else txt
 
-        clean = clean.replace("=", " ").replace("*", " ")
+#        clean = clean.replace("=", " ").replace("*", " ")
 
         words = self.toktok(clean)
 
         # Remove stopwords and digits
         clean_words = []
         for word in words:
-            if not (word in self.stop and remove_stop) and not (remove_digits and not word.isdigit()):
+            if not (word in self.stop and remove_stop) and not (remove_digits and word.isdigit()):
                 clean_words.append( word)
 
-        return " ".join(clean_words) # Create a text again
+        return clean_words # Create a text again
 
 
 
