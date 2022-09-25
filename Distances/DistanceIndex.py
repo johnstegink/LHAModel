@@ -1,6 +1,7 @@
 # Class that contains functionality for computing the distance
 import numpy as np
 import pandas as pd
+import sklearn
 from tqdm import *
 
 from Distances.DocumentRelations import DocumentRelations
@@ -88,10 +89,38 @@ class DistanceIndex:
 
                 sims.sort( key=lambda x: x[1], reverse=True)
 
-                for (dest_id, sim) in sims[0:2]:
+                for (dest_id, sim) in sims[0:1]:
                     dr.add(src=src_id, dest=dest_id, similarity=sim)
 
                 progress.update()
+
+        return dr
+
+    def calculate_relations_less_slow(self, minimal_similarity, second_index=None):
+        """
+        Determine the relations between the documents given the minimal distance, this is without using the ANN,
+        but by using sklearn to compare to matrices
+        :param minimal_similarity: value between 0 and 1
+        :param second_index: The name of the index to compare to, if ommitted the index is compared to itself
+        :param nearest_lim: Limit
+        :return: a object with document relations
+        """
+
+        (docids1, matrix1) = self.documentvectors.get_index_and_matrix()
+        (docids2, matrix2) = (second_index if not second_index is None else self) .documentvectors.get_index_and_matrix()
+
+        sims =  sklearn.metrics.pairwise.cosine_similarity(matrix1, matrix2, dense_output=False)
+        last_sim_row = sims.shape[1]
+
+        sorted = sims.argsort()
+        dr = DocumentRelations()
+        for i1 in range(0, len(docids1)):
+            for iSorted in range(0, 1):
+                i2 = sorted[i1, last_sim_row - iSorted - 1]
+                if sims[i1, i2] >= minimal_similarity:
+                    dr.add(src=docids1[i1], dest=docids2[i2], similarity=sims[i1, i2])
+                else:
+                    break
 
         return dr
 

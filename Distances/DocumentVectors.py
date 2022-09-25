@@ -87,6 +87,21 @@ class DocumentVectors:
 
         return np_dict;
 
+    def get_index_and_matrix(self):
+        """
+        Returns a matrix with all values of all vectors with the rows being the vectors
+        The indexes are the documentids in the rows
+        :return: (indexes, matrix)
+        """
+        indexes = []
+        matrix = []
+
+        for vector in self.vectors.values():
+            indexes.append( vector.documentid)
+            matrix.append(vector.vector)
+
+        return (indexes, matrix)
+
 
 
     def __iter__(self):

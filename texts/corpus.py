@@ -24,6 +24,13 @@ class Corpus:
         self.language = functions.translate_language_code(language_code)
 
 
+    def get_ids(self):
+        """
+        Returns a list of all ids of the corpus
+        :return:
+        """
+        return self.ids
+
     def get_language(self):
         """
         Get the full name of the language

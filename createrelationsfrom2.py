@@ -5,6 +5,7 @@ import argparse
 import sys
 import os
 import functions
+from Distances.DocumentRelations import DocumentRelations
 from Distances.DocumentVectors import  DocumentVectors
 from Distances.DistanceIndex import  DistanceIndex
 from texts.corpus import Corpus
@@ -54,7 +55,7 @@ def print_scores( relations, src_corpus, dst_corpus):
         retreived_documents += 1.0
 
     precision = tp / retreived_documents
-    recall = tp / 46.0
+    recall = tp / 43.0
     f1 = 2 * (precision * recall) / (precision + recall)
 
     print(f"TP: {int(tp)}")
@@ -64,8 +65,8 @@ def print_scores( relations, src_corpus, dst_corpus):
 def print_scores_opt( relations, src_corpus, dst_corpus):
     # 2 * (precision * recall) / (precision + recall)
 
-    found = set()
-    all = set()
+    correct = set()
+    incorrect = set()
     for relation in relations:
         src = src_corpus.getDocument(relation.get_src())
         dst = dst_corpus.getDocument(relation.get_dest())
@@ -74,19 +75,19 @@ def print_scores_opt( relations, src_corpus, dst_corpus):
         dst_id = dst.get_id()
 
         if( src_id == dst_id  and  src_id.startswith("a_")):
-            found.add( src_id)
+            correct.add( src_id)
 
-        all.add( src_id)
+        if( src_id != dst_id  and  src_id.startswith("a_")):
+            incorrect.add( src_id)
 
-    retreived_documents = float( len( all))
-    tp = float( len(found))
+    tp = float( len(correct))
+    tn = float( len(incorrect))
+    tn = 15.0
 
-    precision = tp / retreived_documents
-    recall = tp / 46.0
-    f1 = 2 * (precision * recall) / (precision + recall)
+    f1 = (2 * tp) / (2 * tp + tn + fn)
+    a_s = set( [ id for id in src_corpus.get_ids() if id.startswith("a_") ])
 
     print(f"TP: {int(tp)}")
-    print(f"TP: {int(precision * 100)}%")
     print(f"F1: {int(f1*100)}" )
 
 def print_scores_opt2( relations, src_corpus, dst_corpus):
@@ -104,14 +105,14 @@ def print_scores_opt2( relations, src_corpus, dst_corpus):
         if( src_id == dst_id  and  src_id.startswith("a_")):
             found.add( src_id)
 
-        if( src_id.startswith("a_") or dst_id.startswith("a_")):
+        if( src_id.startswith("a_")):
             all.add( src_id)
 
     retreived_documents = float( len( all))
     tp = float( len(found))
 
     precision = tp / retreived_documents
-    recall = tp / 46.0
+    recall = tp / 43.0
     f1 = 2 * (precision * recall) / (precision + recall)
 
     print(f"TP: {int(tp)}")
@@ -141,13 +142,15 @@ if __name__ == '__main__':
     distance_index2.build()
 
     functions.show_message("Calculating distances")
-    relations = distance_index1.calculate_relations( (float(distance) / 100.0), second_index=distance_index2)
+#    relations = distance_index1.calculate_relations_slow( (float(distance) / 100.0), second_index=distance_index2)
+    relations = distance_index1.calculate_relations_less_slow( (float(distance) / 100.0), second_index=distance_index2)
     relations.save( output)
+    relations = DocumentRelations.read( output)
     if not html is None:
         relations.save_html( corpus1, html, corpus2)
 
-    print_scores( relations, corpus1, corpus2)
-    print_scores_opt( relations, corpus1, corpus2)
+    #print_scores( relations, corpus1, corpus2)
+    #print_scores_opt( relations, corpus1, corpus2)
     print_scores_opt2( relations, corpus1, corpus2)
 
     functions.show_message("Done")
