@@ -20,7 +20,7 @@ def read_arguments():
     parser = argparse.ArgumentParser(description='Create document relations based on the documentvectors that were created with "createvectors.py"')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
     parser.add_argument('-i', '--documentvectorfile', help='The xml file containing the documentvectors', required=True)
-    parser.add_argument('-d', '--distance', help='Minimum distance between the files (actual distance times 100)', required=True)
+    parser.add_argument('-s', '--similarity', help='Minimum similarity between the files (actual similarity times 100)', required=True)
     parser.add_argument('-o', '--output', help='Output file for the xml file with the document relations', required=True)
     parser.add_argument('-r', '--html', help='Output file for readable html output', required=False)
     args = vars(parser.parse_args())
@@ -34,12 +34,12 @@ def read_arguments():
         sys.stderr.write(f"Directory '{corpusdir}' doesn't contain any files\n")
         exit( 2)
 
-    return (corpusdir, args["documentvectorfile"], int(args["distance"]), args["output"], args["html"])
+    return (corpusdir, args["documentvectorfile"], int(args["similarity"]), args["output"], args["html"])
 
 
 # Main part of the script
 if __name__ == '__main__':
-    (corpusdir, input, distance, output, html) = read_arguments()
+    (corpusdir, input, similarity, output, html) = read_arguments()
 
     functions.show_message("Reading document vectors")
     dv = DocumentVectors.read(input)
@@ -53,12 +53,10 @@ if __name__ == '__main__':
     distance_index.build()
 
     functions.show_message("Calculating distances")
-    relations = distance_index.calculate_relations( (float(distance) / 100.0), 5)
+    relations = distance_index.calculate_relations_less_slow((float(similarity) / 100.0))
     relations.save( output)
     if not html is None:
         relations.save_html( corpus, html)
 
     functions.show_message("Done")
-
-    a = 0
 

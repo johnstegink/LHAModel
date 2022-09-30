@@ -22,6 +22,7 @@ def read_arguments():
 
     parser = argparse.ArgumentParser(description='Create document embeddings.')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
+    parser.add_argument('-a', '--algorithm', help='The corpus directory in the Common File Format (default "sent2vec")', choices=["word2vec", "sent2vec"], default="sent2vec")
     parser.add_argument('-o', '--output', help='Output file for the xml file with the documentvectors', required=True)
     args = vars(parser.parse_args())
 
@@ -34,19 +35,38 @@ def read_arguments():
     outputdir = os.path.dirname(args["output"])
     os.makedirs( outputdir, exist_ok=True)
 
-    return (corpusdir, args["output"])
+    return (corpusdir, args["output"], args["algorithm"].lower())
+
+
+def create_encoder( algorithm):
+    """
+    Create a embedding encoding based on the algorithm value
+    :param algorithm:
+    :return:
+    """
+
+    if algorithm == "sent2vec":
+        encoder = Sent2VecEncoder(corpus.get_language_code())
+    elif algorithm == "word2vec":
+        encoder = AvgWord2VecEncoder(corpus.get_language_code())
+    else:
+        raise Exception(f"Unknown algorith: {algorithm}")
+
+    print( f"Using {algorithm} ..." )
+    return encoder
 
 
 # Main part of the script
 if __name__ == '__main__':
-    (inputdir, output) = read_arguments()
+    (inputdir, output, algorithm) = read_arguments()
 
     functions.show_message("Reading corpus")
     corpus = Corpus(directory=inputdir)
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
     functions.show_message("Loading encoder")
-    encoder = Sent2VecEncoder(corpus.get_language_code())
+    encoder = create_encoder( algorithm)
+
     functions.show_message("Document vectors")
     documentvectors = DocumentVectors()
     with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:

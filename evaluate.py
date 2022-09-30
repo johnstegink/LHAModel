@@ -18,12 +18,13 @@ def create_key( src, dest):
     return src + "###" + dest
 
 
-def evaluate( similarities, relations, sim1):
+def evaluate( similarities, relations, sim1, topk):
     """
     Evaluate the relations compared to the similarities
     :param similarities: Similarities object
     :param relations: DocumentRelations object
     :param sim1: what to do with a similarity of 1, positive, negative
+    :param topk: the top number of relevant items to compare for calculation of the F1-value
     :return: (tp, fp, fn, tn)   True positives, False positives, False negatives
     """
 
@@ -58,6 +59,7 @@ def read_arguments():
     parser = argparse.ArgumentParser(description='Evaluate the score.')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
     parser.add_argument('-i', '--relationsxml', help='Xml file containing document relations', required=True)
+    parser.add_argument('-k', '--topk', help='The number ', required=True, default=5, type=int)
     parser.add_argument('-s', '--similarity_1', help="ignore = ignore similarity 1, positive or negative", choices=["positive", "negative"], default="positive")
     args = vars(parser.parse_args())
 
@@ -66,12 +68,12 @@ def read_arguments():
         sys.stderr.write(f"Directory '{corpusdir}' doesn't contain any files\n")
         exit( 2)
 
-    return (corpusdir, args["relationsxml"], args["similarity_1"])
+    return (corpusdir, args["relationsxml"], args["similarity_1"], args["topk"])
 
 
 # Main part of the script
 if __name__ == '__main__':
-    (inputdir, input, sim1) = read_arguments()
+    (inputdir, input, sim1, topk) = read_arguments()
 
     functions.show_message("Reading corpus")
     corpus = Corpus(directory=inputdir)
@@ -87,7 +89,7 @@ if __name__ == '__main__':
 
 
     functions.show_message("Calculating score")
-    (tp, fp, fn) = evaluate(sim, relations, sim1)
+    (tp, fp, fn) = evaluate(sim, relations, sim1, topk)
     F1 = float(tp) / (float(tp) + 0.5 * (float(fp) + float(fn))) * 100.0
     print(f"tp: {tp}")
     print(f"fp: {fp}")
