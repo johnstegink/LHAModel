@@ -12,7 +12,9 @@ from documentencoders.AvgWord2VecEncoder import AvgWord2VecEncoder
 from Distances.DocumentVectors import  DocumentVectors
 from tqdm import *
 
-
+# import pydevd_pycharm
+#
+# pydevd_pycharm.settrace('localhost', port=12345, stdoutToServer=True, stderrToServer=True)
 
 def read_arguments():
     """
@@ -71,8 +73,10 @@ if __name__ == '__main__':
     documentvectors = DocumentVectors()
     with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:
         for document in corpus:
-            vector = encoder.embed_text(document.get_fulltext_in_one_line())
-            documentvectors.add( document.get_id(), vector)
+            text = document.get_fulltext_in_one_line()
+            if len( text) > 100:
+                vector = encoder.embed_text(document.get_fulltext_in_one_line())
+                documentvectors.add( document.get_id(), vector)
             progress.update()
 
     functions.show_message("Save vectors")

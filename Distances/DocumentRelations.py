@@ -20,19 +20,24 @@ class DocumentRelations:
         relation = DocumentRelation(src, dest, similarity)
         self.relations.append( relation)
 
-    def save(self, file):
+    def save(self, file, parameters):
         """
-        Save the relations in the given Xml file
+        Save the relations in the given Xml file, the params are added ass attributes to the root node
         :param file:the output file
+        :param parameters: dictionary of parameters
         :return:
         """
 
         root = ET.fromstring("<relations></relations>")
+        for (name, value) in parameters.items():
+            root.set(name, value)
+
         for relation in self.relations:
             document = ET.SubElement(root, "relation")
+
             ET.SubElement(document, "src").text = relation.get_src()
             ET.SubElement(document, "dest").text = relation.get_dest()
-            ET.SubElement(document, "distance").text = str(relation.get_distance())
+            ET.SubElement(document, "similarity").text = str(relation.get_similarity())
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))
@@ -70,19 +75,19 @@ class DocumentRelations:
     @staticmethod
     def read(file):
         """
-        Returns a new DocumentRelations object filled with the info in the Xml file
+        Returns a new DocumentRelations object filled with the info in the Xml file, together with the parameters that generated the file
         :param file: xml file, that was created with a save
-        :return: DocumentVectors object
+        :return: Tuple (DocumentVectors object, attributes dictionary)
         """
         dr = DocumentRelations()
         root = ET.parse(file).getroot()
         for document in root:
             src = document.find("src").text
             dest = document.find("dest").text
-            distance = float(document.find("distance").text)
-            dr.add( src, dest, distance)
+            similarity = float(document.find("similarity").text)
+            dr.add( src, dest, similarity)
 
-        return dr
+        return (dr, root.attrib)
 
     def __iter__(self):
         """

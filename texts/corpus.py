@@ -22,7 +22,7 @@ class Corpus:
         self.ids = list(self.files.keys())
 
         self.language = functions.translate_language_code(language_code)
-
+        self.documentCache = {}
 
     def get_ids(self):
         """
@@ -116,11 +116,16 @@ class Corpus:
         :param id: 
         :return: 
         """""
-        if not id in self.files:
-            raise Exception( f"Unknown id {id}")
 
-        document =  Document(filename=self.files[id], language=self.language, index=self.get_index_of_id( id))
-        return document
+        if id in self.documentCache:
+            return self.documentCache[id]
+        else:
+            if not id in self.files:
+                raise Exception( f"Unknown id {id}")
+
+            document =  Document(filename=self.files[id], language=self.language, index=self.get_index_of_id( id))
+            self.documentCache[id] = document
+            return document
 
 
     def read_similarities(self):
@@ -133,7 +138,7 @@ class Corpus:
         for src in self.ids:
             document = self.getDocument(src)
             for (dest, similarity) in document.get_links():
-                sim.add( src, dest, similarity, True)
-                sim.add( dest, src, similarity, False)  # Optional
+                sim.add( src, dest, similarity)
+                sim.add( dest, src, similarity)  # Optional
 
         return sim

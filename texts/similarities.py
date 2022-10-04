@@ -8,17 +8,7 @@ class Similarities:
     def __init__(self):
         self.similarities = {}
 
-    def __create_key(self, src, dest):
-        """
-        Create a key to be used in the dictionary
-        :param src:
-        :param dest:
-        :return:
-        """
-        return src + "###" + dest
-
-
-    def add(self, src, dest, similarity, overwrite_if_exists=False):
+    def add(self, src, dest, similarity):
         """
         Add a document relation
         :param src: source id
@@ -28,10 +18,10 @@ class Similarities:
         :return:
         """
 
-        key = self.__create_key(src, dest)
-        if overwrite_if_exists or not key in self.similarities:
-            similarity = Similarity(src, dest, similarity)
-            self.similarities[key] = similarity
+        if not src in self.similarities:
+            self.similarities[src] = {}
+
+        self.similarities[src][dest] = Similarity(src, dest, similarity)
 
 
     def save(self, file):
@@ -42,11 +32,13 @@ class Similarities:
         """
 
         root = ET.fromstring("<similarities></similarities>")
-        for similarity in self.similarities:
-            document = ET.SubElement(root, "relation")
-            ET.SubElement(document, "src").text = similarity.get_src()
-            ET.SubElement(document, "dest").text = similarity.get_dest()
-            ET.SubElement(document, "similarity").text = str(similarity.get_similarity())
+        for src in self.similarities.keys():
+            for dest in self.similarities[src].keys():
+                similarity = self.similarities[src][dest]
+                document = ET.SubElement(root, "relation")
+                ET.SubElement(document, "src").text = similarity.get_src()
+                ET.SubElement(document, "dest").text = similarity.get_dest()
+                ET.SubElement(document, "similarity").text = str(similarity.get_similarity())
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))
@@ -68,6 +60,19 @@ class Similarities:
             sim.add( src, dest, similarity)
 
         return sim
+
+    def get_similiarties(self, src):
+        """
+        Returns a list of similarities of the source
+        :param src:
+        :return: List of similarities
+        """
+
+        if src in self.similarities:
+            return list( self.similarities[src].values())
+        else:
+            return []   # No similarities
+
 
     def __iter__(self):
         """

@@ -47,10 +47,12 @@ class DocumentVectors:
 
         root = ET.fromstring("<documents></documents>")
         for vector in self.vectors.values():
-            document = ET.SubElement(root, "document")
-            ET.SubElement(document, "id").text = vector.get_id()
-            # Comma seperated vector
-            ET.SubElement(document, "vector").text = ",".join([str(value) for value in vector.get_vector()])
+            vectorValue = vector.get_vector()
+            if hasattr(vectorValue, '__iter__'):
+                document = ET.SubElement(root, "document")
+                ET.SubElement(document, "id").text = vector.get_id()
+                # Comma seperated vector
+                ET.SubElement(document, "vector").text = ",".join([str(value) for value in vectorValue])
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))

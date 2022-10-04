@@ -118,7 +118,10 @@ class DistanceIndex:
             for iSorted in range(0, min( last_sim_row, maximum_number_of_results)):
                 i2 = sorted[i1, last_sim_row - iSorted - 1]
                 if sims[i1, i2] >= minimal_similarity:
-                    dr.add(src=docids1[i1], dest=docids2[i2], similarity=sims[i1, i2])
+                    docid1 = docids1[i1]
+                    docid2 = docids2[i2]
+                    if not(second_index is None) or docid1 != docid2:   # When camparing to the same index, skip identical documents
+                        dr.add(src=docid1, dest=docid2, similarity=sims[i1, i2])
                 else:
                     break
 
