@@ -45,6 +45,7 @@ def print_scores( relations, src_corpus, dst_corpus):
     :return:
     """
     tp = 0.0
+    tn = 0.0
     for relation in relations:
         src = src_corpus.getDocument(relation.get_src())
         dst = dst_corpus.getDocument(relation.get_dest())
@@ -52,10 +53,16 @@ def print_scores( relations, src_corpus, dst_corpus):
         src_id = src.get_id()
         dst_id = dst.get_id()
 
-        if( src_id == dst_id  and  src_id.startswith("a_")):
-            tp += 1.0
+        if( src_id.startswith("a_") or dst_id.startswith("a_")):
+            if( src_id == dst_id):
+                tp += 1.0
+            else:
+                tn += 1.0
 
+    perc = round((tp * 100) / (tn + tp))
     print(f"TP: {int(tp)}")
+    print(f"TN: {int(tn)}")
+    print(f"Percentage: {perc}")
 
 
 
@@ -83,10 +90,11 @@ if __name__ == '__main__':
 
     functions.show_message("Calculating distances")
     relations = distance_index1.calculate_relations_less_slow( (float(distance) / 100.0), second_index=distance_index2, maximum_number_of_results=1)
-    relations.save( output)
-    relations = DocumentRelations.read( output)
+    # relations = distance_index1.calculate_relations( (float(distance) / 100.0), second_index=distance_index2, maximum_number_of_results=1)
+    relations.save( output, {})
+    (relations, params) = DocumentRelations.read( output)
     if not html is None:
-        relations.save_html( corpus1, html, corpus2)
+        relations.save_html( corpus1, html, corpus2, "a_")
 
     print_scores( relations, corpus1, corpus2)
 

@@ -41,16 +41,21 @@ def read_data( mdir):
 def create_graph( data):
     colors = ["rgb(133,153,0)","rgb(42,161,152)","rgb(38,139,210)","rgb(108,113,196)","rgb(211,54,130)","rgb(220,50,47)","rgb(203,75,22)","rgb(181,137,0)"]
 
-    for dataset in data.keys():
+    datasets = list(data.keys())
+    datasets = datasets[0:2]
+
+    for dataset in datasets:
         df = data[dataset]
         fig = make_subplots()
         colorindex =0
-        for topk in range(3, 20, 3):
-            dftopk = df[(df.topk == topk)]
+        fields = ["F1", "precision", "recall"]
+
+        dftopk = df[(df.topk == 5)]
+        for field in fields:
             layer   = go.Scatter(
                           x=dftopk["sim"],
-                          y=dftopk["F1"],
-                          name=f"Top {topk}",
+                          y=dftopk[ field],
+                          name=f"{field}",
                           marker=dict(
                               color=colors[colorindex]
                         )

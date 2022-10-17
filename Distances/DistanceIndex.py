@@ -109,7 +109,10 @@ class DistanceIndex:
         (docids1, matrix1) = self.documentvectors.get_index_and_matrix()
         (docids2, matrix2) = (second_index if not second_index is None else self) .documentvectors.get_index_and_matrix()
 
-        sims =  sklearn.metrics.pairwise.cosine_similarity(matrix1, matrix2, dense_output=False)
+        orgsims =  sklearn.metrics.pairwise.cosine_similarity(matrix1, matrix2, dense_output=False)
+        # distances = 1 - orgsims
+        # sims = 1.0 / (1.0 + distances)
+        sims = orgsims
         last_sim_row = sims.shape[1]
 
         sorted = sims.argsort()

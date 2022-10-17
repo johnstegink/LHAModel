@@ -89,18 +89,19 @@ def evaluate(corpus, sims, grouped_on_src, sim1, topk):
 
     for src in corpus.get_ids():
         relevant = set( [sim.get_dest() for sim in sims.get_similiarties(src) if sim.get_similarity() == 2 or (consider_1_as_positive and sim.get_similarity() == 1)] )
-        recommended = generated_all[src] if src in generated_all else set()
+        if len( relevant) > 0:
+            recommended = generated_all[src] if src in generated_all else set()
 
-        relevant_items = float( len( recommended.intersection( relevant)))
-        precision = relevant_items / float( len( recommended)) if len(recommended) > 0 else 1
-        recall = relevant_items / float( len( relevant)) if len(relevant) > 0 else 1
-        if (recall + precision) != 0:
-            f1 = (2 * recall * precision) / (recall + precision)
-        else:
-            f1 = 0
-        precisions.append(precision)
-        recalls.append(recall)
-        f1s.append( f1)
+            relevant_items = float( len( recommended.intersection( relevant)))
+            precision = relevant_items / float( len( recommended)) if len(recommended) > 0 else 1
+            recall = relevant_items / float( len( relevant)) if len(relevant) > 0 else 1
+            if (recall + precision) != 0:
+                f1 = (2 * recall * precision) / (recall + precision)
+            else:
+                f1 = 0
+            precisions.append(precision)
+            recalls.append(recall)
+            f1s.append( f1)
 
 
     return (sum(f1s) / len(f1s), sum(precisions) / len(precisions), sum(recalls) /len(recalls))
@@ -130,7 +131,7 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(output), exist_ok=True)
     if not os.path.isfile( output):
         with open(output, mode="w", encoding="utf-8-sig") as file:
-            file.write("corpus\tlanguage\ttopk\tsim\tavgrel\t\tF1\tprecision\trecall\n")
+            file.write("corpus\tlanguage\ttopk\tsim\tavgrel\tF1\tprecision\trecall\n")
 
     for topk in range(1, 25, 1):
         (F1, precision, recall) = evaluate(corpus, sims, grouped_on_src, sim1, topk)

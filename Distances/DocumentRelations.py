@@ -8,6 +8,7 @@ import functions
 class DocumentRelations:
     def __init__(self):
         self.relations = []
+        self.is_dirty = True
 
     def add(self, src, dest, similarity):
         """
@@ -19,6 +20,8 @@ class DocumentRelations:
         """
         relation = DocumentRelation(src, dest, similarity)
         self.relations.append( relation)
+        self.is_dirty = True
+
 
     def save(self, file, parameters):
         """
@@ -43,7 +46,7 @@ class DocumentRelations:
         functions.write_file( file, functions.xml_as_string(root))
 
 
-    def save_html(self, src_corpus, output, dest_corpus = None):
+    def save_html(self, src_corpus, output, dest_corpus = None, startof_id_filter = None):
         """
         Save the relations as a html file
         :param src_corpus: The originating corpus
@@ -60,15 +63,21 @@ class DocumentRelations:
             htmlfile.write(f"<body>\n")
             htmlfile.write(f"<table>\n")
             htmlfile.write(f"<tr>\n<th>{html.escape(src_corpus.get_name())}</th><th>{html.escape(dst_corpus.get_name())}</th><th>Similarity</th></tr>")
-            for relation in self.relations:
-                src = src_corpus.getDocument(relation.get_src())
-                dest = dst_corpus.getDocument(relation.get_dest())
+            rels = list(self.relations)
+            rels.sort( key=lambda rel: rel.get_src())
+            for relation in rels:
+                if startof_id_filter is None or relation.get_src().startswith( startof_id_filter) or relation.get_dest().startswith( startof_id_filter):
+                    src = src_corpus.getDocument(relation.get_src())
+                    dest = dst_corpus.getDocument(relation.get_dest())
 
-                htmlfile.write("<tr>\n")
-                htmlfile.write(f"<td>{src.create_html_link(target='link1', language_code='simple')}</td>\n")
-                htmlfile.write(f"<td>{dest.create_html_link(target='link2')}</td>\n")
-                htmlfile.write(f"<td>{relation.get_distance():0.2}</td>\n")
-                htmlfile.write("</tr>\n")
+                    htmlfile.write("<tr ")
+                    if relation.get_src() == relation.get_dest():
+                        htmlfile.write(" style='color: orange; font-weight: bold;'")
+                    htmlfile.write('>')
+                    htmlfile.write(f"<td>{src.create_html_link(target='link1', language_code='simple')}</td>\n")
+                    htmlfile.write(f"<td>{dest.create_html_link(target='link2')}</td>\n")
+                    htmlfile.write(f"<td>{relation.get_similarity():0.2}</td>\n")
+                    htmlfile.write("</tr>\n")
             htmlfile.write("</table>\n</body>\n</html>\n")
 
 
@@ -118,3 +127,24 @@ class DocumentRelations:
         """
 
         return len(self.relations)
+
+
+
+    def get_relations_of(self, id):
+        """
+        Get all relations with the given src id
+        :param id:
+        :return:
+        """
+
+        if self.is_dirty:
+            # Fill a dictionary with the src as key and all relations as values
+            self.per_src = {}
+            for rel in self.relations:
+                src = rel.get_src()
+                if not src in self.per_src:
+                    self.per_src[src] = []
+                self.per_src[src].append( rel)
+            self.is_dirty = False
+
+        return self.per_src[id] if id in self.per_src else []

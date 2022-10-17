@@ -20,14 +20,14 @@ PREFIX=wikidata_en
 $VENVDIR/python createrelations.py -c $COPRUSDIR/wikidata/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC & # -r $OUTDIR/$PREFIX\.html &
 
 # Wikimatch
-PREFIX=wikimatch_nl
-$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC & # -r $OUTDIR/$PREFIX\.html &
-PREFIX=wikimatch_en
-$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC & # -r $OUTDIR/$PREFIX\.html &
+#PREFIX=wikimatch_nl
+#$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC & # -r $OUTDIR/$PREFIX\.html &
+#PREFIX=wikimatch_en
+#$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC & # -r $OUTDIR/$PREFIX\.html &
 
 # S2ORC
-PREFIX=S2ORC
-$VENVDIR/python createrelations.py -c $COPRUSDIR/S2ORC/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC & # -r $OUTDIR/$PREFIX\.html &
+#PREFIX=S2ORC
+#$VENVDIR/python createrelations.py -c $COPRUSDIR/S2ORC/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC & # -r $OUTDIR/$PREFIX\.html &
 
 wait
 
