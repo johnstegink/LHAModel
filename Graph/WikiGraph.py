@@ -284,6 +284,10 @@ class WikiGraph:
             bfs.run()
             path = [self.words[index] for index in bfs.getPath(target)]
             print( path)
-            return int( bfs.distance(target))
+            dist = int( bfs.distance(target))
+            if dist > 1000:
+                dist = -1
+                
+            return dist
         else:
             return 99999
