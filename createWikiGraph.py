@@ -1,12 +1,8 @@
 import argparse
-import pickle
+from Graph.WikiGraph import WikiGraph
+import gc
 
 wikipedia_dumpdir = "../../Corpora/WikipediaDump"
-
-import os
-import re
-from Graph.WikiGraph import WikiGraph
-
 
 
 def read_arguments():
@@ -29,11 +25,20 @@ if __name__ == '__main__':
     (language, max_degree) = read_arguments()
 
     graph = WikiGraph(language=language, sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
+
     print( graph.get_distance( "Albert speer", "computer"))
     print( graph.get_distance( "kyaniet", "geranium"))
     print( graph.get_distance( "Jolien van Vliet", "Malachiet"))
     print( graph.get_distance( "Piet Hein Donner", "Malachiet"))
 
+    del graph
+    gc.collect()
+
+    graph = WikiGraph(language=language, sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
+    print( graph.get_Milne_Witten( "Albert speer", "computer"))
+    print( graph.get_Milne_Witten( "kyaniet", "geranium"))
+    print( graph.get_Milne_Witten( "Jolien van Vliet", "Malachiet"))
+    print( graph.get_Milne_Witten( "Piet Hein Donner", "Malachiet"))
 
     # (pages, pagelinks) = read_sql_from_dump( wikipedia_dumpdir, language)
     # counter = 0

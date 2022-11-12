@@ -109,7 +109,6 @@ def evaluate(corpus, sims, grouped_on_src, sim1, topk):
 
 
 
-
 # Main part of the script
 if __name__ == '__main__':
     (inputdir, input, output, sim1) = read_arguments()

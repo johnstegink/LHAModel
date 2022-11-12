@@ -1,9 +1,11 @@
 # Class that creates and uses a graph of wikipedia links
 import datetime
+import math
 import os
 import pickle
 import re
 import networkit as nk
+import array as arr
 
 import functions
 
@@ -17,19 +19,23 @@ class WikiGraph:
         :param sql_dir: directory containing the files with the pages.sql and pagelinks.sql
         :param cache_dir:
         :param max_degree: The maximum degree a node can have, otherwise it will be ignored
+        :param cache_dir: name of the directory with the cache files
 
         """
         self.language = language
         self.sql_dir = sql_dir
         self.cache_dir = cache_dir
         self.max_degree = max_degree
+        self.nk_graph = None
+        self.py_graph = None
+        self.distance = None
+        self.milne_witten = None
 
-        (self.python_cache, self.graph_cache) = self.__cache_files()
-        if not os.path.isfile( self.python_cache) or not os.path.isfile( self.graph_cache):
-            (self.words, self.graph) = self.__fill_cache( self.max_degree)
-        else:
-            (self.words, self.graph) = self.__read_from_cache()
+        (self.python_cache, self.nk_graph_cache, self.py_graph_cache, self.distance_cache, self.milne_witten_cache) = self.__cache_files()
+        if not os.path.isfile( self.python_cache) or not os.path.isfile(self.nk_graph_cache) or not os.path.isfile(self.py_graph_cache):
+            self.__fill_cache(self.max_degree)
 
+        self.words = self.__read_from_cache(self.python_cache)
         self.word_indexes = { word.lower():index for (index, word) in enumerate(self.words)}
 
 
@@ -40,7 +46,11 @@ class WikiGraph:
         """
 
         return ( os.path.join(self.cache_dir, f"{self.language}_py.cache"),
-                 os.path.join(self.cache_dir, f"{self.language}_graph.cache"))
+                 os.path.join(self.cache_dir, f"{self.language}_nk_graph.cache"),
+                 os.path.join(self.cache_dir, f"{self.language}_py_graph.cache"),
+                 os.path.join(self.cache_dir, f"{self.language}_distance.cache"),
+                 os.path.join(self.cache_dir, f"{self.language}_milnewitten.cache")
+                 )
 
 
     def __fill_cache(self, max_degree):
@@ -63,15 +73,33 @@ class WikiGraph:
             with open(self.python_cache + ".tmp", "wb") as pickle_file:
                 pickle.dump((words, pageids, degrees), pickle_file)
 
-        graph = self.__create_graph( pagelinks_sql, words, word_indexes, pageids, degrees, max_degree)
+        (nk_graph, py_graph) = self.__create_graph( pagelinks_sql, words, word_indexes, pageids, degrees, max_degree)
 
         print( "Saving graph...")
+        nk.writeGraph(G=nk_graph, path=self.nk_graph_cache, fileformat=nk.Format.NetworkitBinary)
+        self.__save_in_pickle(words, self.python_cache)
+        self.__save_in_pickle(py_graph, self.py_graph_cache)
+        self.__save_in_pickle({}, self.distance_cache)
+        self.__save_in_pickle({}, self.milne_witten_cache)
 
-        nk.writeGraph( G=graph, path=self.graph_cache, fileformat=nk.Format.NetworkitBinary)
-        with open(self.python_cache , "wb") as pickle_file:
-            pickle.dump(words, pickle_file)
+        # Free some memory
+        del word_indexes
+        del words
+        del pageids
+        del nk_graph
+        del py_graph
 
-        return( words, graph)
+
+    def __save_in_pickle(self, data, file):
+        """
+        Saves the data in a pickle file
+        :param data:
+        :param file:
+        :return:
+        """
+
+        with open(file , "wb") as pickle_file:
+            pickle.dump(data, pickle_file)
 
 
     def __replace_comma_in_string(self, str, replacement):
@@ -185,7 +213,7 @@ class WikiGraph:
     def __create_graph(self, sql_file, words, word_indexes, pageids, degrees, max_degree):
         """
         Use the SQL file to read all pagelinks and return a dictionary of dictonaries with links
-        creates a graph
+        creates a graph as a nk.Graph and as a list of sets were the set contains all destination indexes
         :param sql_file: sql file
         :param words: list of words
         :param word_indexes: dictionary word -> index
@@ -194,7 +222,8 @@ class WikiGraph:
         """
 
 
-        graph = nk.Graph(n=len(words),weighted=False,directed=False)
+        nk_graph = nk.Graph(n=len(words),weighted=False,directed=False)
+        py_graph = [arr.array("i", []) for i in range(0,len(word_indexes))]  # Create a list of sets with for every word, it contains the destinations
         counter = 0
         for record in self.__read_values_from_sql(sql_file):
             # Check the record
@@ -210,26 +239,31 @@ class WikiGraph:
 
                     # Only add if there are not too many degrees
                     if degrees[src_index] <= max_degree  and degrees[dest_index] <= max_degree:
-                        graph.addEdge(src_index, dest_index, 1.0, False)
+                        nk_graph.addEdge(src_index, dest_index, 1.0, False)
+
+                    # Add the destination to the source graph
+                    py_graph[src_index].append(dest_index)
 
                 if counter % 1000000 == 0:
                     now = datetime.datetime.now()
                     print( f"{now.hour:02}:{now.minute:02}:{now.second:02} Graph {int( counter / 1000000)}")
                 counter += 1
 
-        return graph
+        return (nk_graph, py_graph)
 
 
-    def __read_from_cache(self):
+    def __read_from_cache(self, file):
         """
-        Read the datastructures from the cache
-        :return: (words, graph)
+        Read the datastructure from the cache
+        :param file: the cache file to use
+        :return: the data from the file
         """
-        graph = nk.readGraph( path=self.graph_cache, fileformat=nk.Format.NetworkitBinary)
-        with open(self.python_cache, "rb") as pickle_file:
-            words = pickle.load( pickle_file)
 
-        return (words, graph)
+        if file == self.nk_graph_cache:
+            return nk.readGraph(path=file, fileformat=nk.Format.NetworkitBinary)
+        else:
+            with open(file, "rb") as pickle_file:
+                return pickle.load( pickle_file)
 
 
 
@@ -277,17 +311,78 @@ class WikiGraph:
         :return: the distance
         """
 
+        if self.distance is None:
+            self.distance = self.__read_from_cache(self.distance_cache)
+
+        # Try to read it from the cache
+        cache_key = f"{word1}#{word2}"
+        if( cache_key in self.distance):
+            return self.distance[cache_key]
+
+
         src = self.__get_graphid_of_word( word1)
         target = self.__get_graphid_of_word( word2)
+
+        if self.nk_graph is None:
+            self.nk_graph = self.__read_from_cache(self.nk_graph_cache)
+
         if src >= 0 and target >= 0:
-            bfs = nk.distance.BFS( G=self.graph, source=src, storePaths=True,storeNodesSortedByDistance=False,target=target)
+            bfs = nk.distance.BFS(G=self.nk_graph, source=src, storePaths=True, storeNodesSortedByDistance=False, target=target)
             bfs.run()
             path = [self.words[index] for index in bfs.getPath(target)]
             print( path)
             dist = int( bfs.distance(target))
             if dist > 1000:
                 dist = -1
-                
-            return dist
         else:
-            return 99999
+            dist = 99999
+
+        # Save the data for the next time
+        self.distance[cache_key] = dist
+        self.__save_in_pickle( self.distance, self.distance_cache)
+
+        return dist
+
+    def get_Milne_Witten(self, word1, word2):
+        """
+        Retrieve teh Milne&Witten score, is much faster than te distance
+        :param word1:
+        :param word2:
+        :return: score
+        """
+
+        if self.milne_witten is None:
+            self.milne_witten = self.__read_from_cache(self.milne_witten_cache)
+
+        # Try to read it from the cache
+        cache_key = f"{word1}#{word2}"
+        if( cache_key in self.milne_witten):
+            return self.milne_witten[cache_key]
+
+        src = self.__get_graphid_of_word( word1)
+        target = self.__get_graphid_of_word( word2)
+
+        if self.py_graph is None:
+            self.py_graph = self.__read_from_cache( self.py_graph_cache)
+
+        if src >= 0  and target >= 0:
+            A = self.py_graph[src]
+            B = self.py_graph[target]
+            maximum = max( len(A), len(B))
+            minimum = min( len(A), len(B))
+            intersect = len( set(A).intersection( B))
+            wikilen = len( self.py_graph)
+
+            if intersect != 0:
+                mw = 1 - (math.log(maximum) - math.log( intersect)) / (math.log(wikilen) - math.log(minimum))
+            else:
+                mw = 0
+
+        else:
+            mw = 0
+
+        # Save the data for the next time
+        self.milne_witten[cache_key] = mw
+        self.__save_in_pickle(self.milne_witten, self.milne_witten_cache)
+
+        return mw
