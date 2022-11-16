@@ -31,6 +31,7 @@ if __name__ == '__main__':
     print( graph.get_distance( "Jolien van Vliet", "Malachiet"))
     print( graph.get_distance( "Piet Hein Donner", "Malachiet"))
 
+    graph.save_cache_files()
     del graph
     gc.collect()
 
@@ -39,6 +40,7 @@ if __name__ == '__main__':
     print( graph.get_Milne_Witten( "kyaniet", "geranium"))
     print( graph.get_Milne_Witten( "Jolien van Vliet", "Malachiet"))
     print( graph.get_Milne_Witten( "Piet Hein Donner", "Malachiet"))
+    graph.save_cache_files()
 
     # (pages, pagelinks) = read_sql_from_dump( wikipedia_dumpdir, language)
     # counter = 0

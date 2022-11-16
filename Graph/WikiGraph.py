@@ -30,6 +30,7 @@ class WikiGraph:
         self.py_graph = None
         self.distance = None
         self.milne_witten = None
+        self.distance_counter = 0
 
         (self.python_cache, self.nk_graph_cache, self.py_graph_cache, self.distance_cache, self.milne_witten_cache) = self.__cache_files()
         if not os.path.isfile( self.python_cache) or not os.path.isfile(self.nk_graph_cache) or not os.path.isfile(self.py_graph_cache):
@@ -77,10 +78,10 @@ class WikiGraph:
 
         print( "Saving graph...")
         nk.writeGraph(G=nk_graph, path=self.nk_graph_cache, fileformat=nk.Format.NetworkitBinary)
-        self.__save_in_pickle(words, self.python_cache)
-        self.__save_in_pickle(py_graph, self.py_graph_cache)
-        self.__save_in_pickle({}, self.distance_cache)
-        self.__save_in_pickle({}, self.milne_witten_cache)
+        # self.__save_in_pickle(words, self.python_cache)
+        # self.__save_in_pickle(py_graph, self.py_graph_cache)
+        # self.__save_in_pickle({}, self.distance_cache)
+        # self.__save_in_pickle({}, self.milne_witten_cache)
 
         # Free some memory
         del word_indexes
@@ -95,12 +96,11 @@ class WikiGraph:
         Saves the data in a pickle file
         :param data:
         :param file:
-        :return:
+        :return: None
         """
 
         with open(file , "wb") as pickle_file:
             pickle.dump(data, pickle_file)
-
 
     def __replace_comma_in_string(self, str, replacement):
         """
@@ -223,7 +223,8 @@ class WikiGraph:
 
 
         nk_graph = nk.Graph(n=len(words),weighted=False,directed=False)
-        py_graph = [arr.array("i", []) for i in range(0,len(word_indexes))]  # Create a list of sets with for every word, it contains the destinations
+        py_graph = []
+        # py_graph = [arr.array("i", []) for i in range(0,len(word_indexes))]  # Create a list of sets with for every word, it contains the destinations
         counter = 0
         for record in self.__read_values_from_sql(sql_file):
             # Check the record
@@ -242,7 +243,7 @@ class WikiGraph:
                         nk_graph.addEdge(src_index, dest_index, 1.0, False)
 
                     # Add the destination to the source graph
-                    py_graph[src_index].append(dest_index)
+                    # py_graph[src_index].append(dest_index)
 
                 if counter % 1000000 == 0:
                     now = datetime.datetime.now()
@@ -256,15 +257,17 @@ class WikiGraph:
         """
         Read the datastructure from the cache
         :param file: the cache file to use
-        :return: the data from the file
+        :return: the data from the file, or None if the file does not exist
         """
 
-        if file == self.nk_graph_cache:
-            return nk.readGraph(path=file, fileformat=nk.Format.NetworkitBinary)
+        if os.path.isfile( file):
+            if file == self.nk_graph_cache:
+                return nk.readGraph(path=file, fileformat=nk.Format.NetworkitBinary)
+            else:
+                with open(file, "rb") as pickle_file:
+                    return pickle.load( pickle_file)
         else:
-            with open(file, "rb") as pickle_file:
-                return pickle.load( pickle_file)
-
+            return None
 
 
     def __read_sql_from_dump(self, dump_dir, language):
@@ -313,12 +316,16 @@ class WikiGraph:
 
         if self.distance is None:
             self.distance = self.__read_from_cache(self.distance_cache)
+            if self.distance is None:
+                self.distance = {}
 
         # Try to read it from the cache
         cache_key = f"{word1}#{word2}"
         if( cache_key in self.distance):
             return self.distance[cache_key]
 
+        if self.distance_counter is None:
+            self.distance_counter = 0
 
         src = self.__get_graphid_of_word( word1)
         target = self.__get_graphid_of_word( word2)
@@ -327,19 +334,23 @@ class WikiGraph:
             self.nk_graph = self.__read_from_cache(self.nk_graph_cache)
 
         if src >= 0 and target >= 0:
-            bfs = nk.distance.BFS(G=self.nk_graph, source=src, storePaths=True, storeNodesSortedByDistance=False, target=target)
-            bfs.run()
-            path = [self.words[index] for index in bfs.getPath(target)]
-            print( path)
-            dist = int( bfs.distance(target))
+            biBFS = nk.distance.BidirectionalBFS(G=self.nk_graph, source=src, target=target)
+            biBFS.run()
+            dist = int( biBFS.getHops())
             if dist > 1000:
                 dist = -1
         else:
-            dist = 99999
+            dist = -2
 
         # Save the data for the next time
         self.distance[cache_key] = dist
-        self.__save_in_pickle( self.distance, self.distance_cache)
+
+        # Save the cache every now and then
+        self.distance_counter += 1
+        if self.distance_counter % 10 == 0:
+            self.save_cache_files()
+
+        print(f"{self.distance_counter}: {word1} -> {word2} [{dist}]");
 
         return dist
 
@@ -353,6 +364,8 @@ class WikiGraph:
 
         if self.milne_witten is None:
             self.milne_witten = self.__read_from_cache(self.milne_witten_cache)
+            if self.milne_witten is None:
+                self.milne_witten = {}
 
         # Try to read it from the cache
         cache_key = f"{word1}#{word2}"
@@ -383,6 +396,18 @@ class WikiGraph:
 
         # Save the data for the next time
         self.milne_witten[cache_key] = mw
-        self.__save_in_pickle(self.milne_witten, self.milne_witten_cache)
 
         return mw
+
+
+    def save_cache_files(self):
+        """
+        Save the cache files for milne_witten and the distance
+        :return: None
+        """
+
+        if not self.milne_witten is None:
+            self.__save_in_pickle(self.milne_witten, self.milne_witten_cache)
+
+        if not self.distance is None:
+            self.__save_in_pickle(self.distance, self.distance_cache)
