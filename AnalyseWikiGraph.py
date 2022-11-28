@@ -1,11 +1,18 @@
 import argparse
 import math
+import os
+import time
+
+import pandas as pd
 
 from Graph.WikiGraph import WikiGraph
 import gc
+import os
 import functions
 import pandas
+import plotly.express as px
 import plotly.graph_objects as go
+import kaleido
 from plotly.subplots import make_subplots
 
 wikipedia_dumpdir = "../../Corpora/WikipediaDump"
@@ -19,11 +26,15 @@ def read_arguments():
 
     parser = argparse.ArgumentParser(description='Create a diagram from the gWikiMatch files, with the Milne_Witten score and distance')
     parser.add_argument('-i', '--input', help='Directory with the gWikiMatch files (only .tsv files are read)', required=True)
+    parser.add_argument('-o', '--output', help='Directory with output images', required=True)
     parser.add_argument('-d', '--maxdegree', help='The maximum number of degrees per per vertex', required=True, type=int)
 
     args = vars(parser.parse_args())
 
-    return ( args["input"], args["maxdegree"])
+    output = args["output"]
+    os.makedirs( output, exist_ok=True)
+
+    return ( args["input"], output,  args["maxdegree"])
 
 
 def get_article( url):
@@ -83,13 +94,13 @@ def mw_label( mw):
         return "0.00"
 
 
-def visualize_MilneWitten( data):
+def visualize_MilneWitten( data, imagefile):
     """
     Creates a diagram of the MilneWitten values compared to the gWikiMatch data
     :param data:
     :return:
     """
-    colors = ["rgb(133,153,0)","rgb(42,161,152)","rgb(38,139,210)","rgb(108,113,196)","rgb(211,54,130)","rgb(220,50,47)","rgb(203,75,22)","rgb(181,137,0)"]
+    colors = ["rgb(116,0,48)","rgb(237,92,139)","rgb(38,139,210)","rgb(108,113,196)","rgb(211,54,130)","rgb(220,50,47)","rgb(203,75,22)","rgb(181,137,0)"]
 
     df = data.copy()
     df['Value'] = df.apply(lambda row: mw_label( row.MilneWitten), axis=1)
@@ -117,15 +128,32 @@ def visualize_MilneWitten( data):
     plot = go.Figure(data=[go.Bar(
             name="Positive",
             x = labels,
-            y = yes
-        ),
+            y = yes,
+            marker_color=colors[0]
+    ),
         go.Bar(
             name="Negative",
             x = labels,
-            y = no
-        )
+            y = no,
+            marker_color = colors[1]
+    )
     ])
-    plot.show()
+
+    ## Workaround to remove error message from pdf
+    fig = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
+    fig.write_image(imagefile, format="pdf")
+    time.sleep(2)
+
+    plot.update_layout(
+        {"xaxis": {
+            "title": "Range for the Milne&Witten score"
+        },
+        "yaxis": {
+            "title": "Number of articles"
+        }
+    })
+
+    plot.write_image(imagefile)
 
 
 def distance_label( value):
@@ -134,15 +162,19 @@ def distance_label( value):
     :param value:
     :return:
     """
-    return value if value < 10 else -2
 
-def visualize_Distance( data):
+    if value < 1 or value > 10:
+        return "No path"
+    else:
+        return str(value)
+
+def visualize_Distance( data, imagefile):
     """
     Creates a diagram of the distance values compared to the gWikiMatch data
     :param data:
     :return:
     """
-    colors = ["rgb(133,153,0)","rgb(42,161,152)","rgb(38,139,210)","rgb(108,113,196)","rgb(211,54,130)","rgb(220,50,47)","rgb(203,75,22)","rgb(181,137,0)"]
+    colors = ["rgb(116,0,48)","rgb(237,92,139)","rgb(38,139,210)","rgb(108,113,196)","rgb(211,54,130)","rgb(220,50,47)","rgb(203,75,22)","rgb(181,137,0)"]
 
     df = data.copy()
 
@@ -170,16 +202,32 @@ def visualize_Distance( data):
     plot = go.Figure(data=[go.Bar(
             name="Positive",
             x = labels,
-            y = yes
+            y = yes,
+            marker_color=colors[0]
         ),
         go.Bar(
             name="Negative",
             x = labels,
-            y = no
-        )
-    ])
+            y = no,
+            marker_color = colors[1]
+        )])
 
-    plot.show()
+    plot.update_layout(
+        {"xaxis": {
+            "title": "Length of shortest path"
+        },
+        "yaxis": {
+            "title": "Number of articles"
+        }
+    })
+
+
+    ## Workaround to remove error message from pdf
+    fig = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
+    fig.write_image(imagefile, format="pdf")
+    time.sleep(2)
+
+    plot.write_image(imagefile)
 
 
 
@@ -187,26 +235,49 @@ def visualize_Distance( data):
 
 ## Main part
 if __name__ == '__main__':
-    (input, max_degree) = read_arguments()
+    (input, outputdir, max_degree) = read_arguments()
 
     data = read_files(input)
-    graph = WikiGraph(language="en", sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
+    depths = [200]
+    depths.extend(range(400, max_degree, 400))
+    depths.append(max_degree)
+    depths.reverse()
 
-    data['MilneWitten'] = data.apply( lambda row: graph.get_Milne_Witten( row.word1, row.word2), axis=1)
-    graph.save_cache_files()
+    for depth in depths:
+        datafile = os.path.join( outputdir, f"milnewitten_{depth}.csv")
+        if not os.path.exists( datafile):
+            graph = WikiGraph(language="en", sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
+            graph.remove_nodes_degree_greater_than( depth )
 
-    visualize_MilneWitten(data)
-    # Clean up
-    del graph
-    gc.collect()
+            data['MilneWitten'] = data.apply(lambda row: graph.get_Milne_Witten(row.word1, row.word2), axis=1)
+            graph.remove_cache_files()
+            data.to_csv(datafile, sep='\t')
+        else:
+            data = pd.read_csv( datafile, sep="\t")
+            graph = None
 
-    # Load the graph again, but now for the distance
-    graph = WikiGraph(language="en", sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
+        visualize_MilneWitten(data, os.path.join( outputdir, f"milnewitten_{depth}.pdf"))
+        if not graph is None:
+            del graph
 
-    data['distance'] = data.apply( lambda row: graph.get_distance( row.word1, row.word2), axis=1)
-    graph.save_cache_files()
-    visualize_Distance(data)
 
+    # for depth in depths:
+    #     datafile = os.path.join( outputdir, f"distance_{depth}.csv")
+    #     if not os.path.exists( datafile):
+    #         graph = WikiGraph(language="en", sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
+    #         graph.remove_nodes_degree_greater_than( depth )
+    #
+    #         data['distance'] = data.apply( lambda row: graph.get_distance( row.word1, row.word2), axis=1)
+    #         graph.remove_cache_files()
+    #         data.to_csv(datafile, sep='\t')
+    #     else:
+    #         data = pd.read_csv( datafile, sep="\t")
+    #         graph = None
+    #
+    #     visualize_Distance( data, os.path.join( outputdir, f"distance_{depth}.pdf"))
+    #
+    #     if not graph is None:
+    #         del graph
 
     print("ready")
 

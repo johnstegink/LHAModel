@@ -19,6 +19,21 @@ def read_arguments():
     return ( args["language"], args["maxdegree"])
 
 
+def create_DOT( graph, word, max, prefix):
+    counter = 0
+    prolog = ""
+    dot = ""
+    node = f"{prefix}_0"
+    prolog += f'{node}[label="{word}"]\n'
+    nbs = graph.neighbors( word)
+    for i in range(0, min(max, len(nbs))):
+        nb = f"{prefix}_{i+1}"
+        prolog += f'{nb}[label="{nbs[i]}"]\n'
+        dot += f'{node} -> {nb}\n'
+
+    print(prolog + "\n\n\n")
+    print(dot + "\n------------------------\n\n\n")
+
 
 ## Main part
 if __name__ == '__main__':
@@ -26,21 +41,26 @@ if __name__ == '__main__':
 
     graph = WikiGraph(language=language, sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
 
-    print( graph.get_distance( "Albert speer", "computer"))
-    print( graph.get_distance( "kyaniet", "geranium"))
-    print( graph.get_distance( "Jolien van Vliet", "Malachiet"))
-    print( graph.get_distance( "Piet Hein Donner", "Malachiet"))
+    # print( graph.get_distance( "Albert speer", "computer"))
+    # print( graph.get_distance( "kyaniet", "geranium"))
+    # print( graph.get_distance( "Jolien van Vliet", "Malachiet"))
+    # print( graph.get_distance( "Piet Hein Donner", "Malachiet"))
+    #
+    # graph.save_cache_files()
+    # del graph
+    # gc.collect()
+    #
+    # graph = WikiGraph(language=language, sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
+    # print( graph.get_Milne_Witten( "Albert speer", "computer"))
+    # print( graph.get_Milne_Witten( "kyaniet", "geranium"))
+    # print( graph.get_Milne_Witten( "Jolien van Vliet", "Malachiet"))
+    # print( graph.get_Milne_Witten( "Piet Hein Donner", "Malachiet"))
+    # graph.save_cache_files()
 
-    graph.save_cache_files()
-    del graph
-    gc.collect()
+    # create_DOT(graph, "Bonaire", 10, "c")
+    print( graph.get_distance("Hippopotamus", "Frederick Griffith"))
+    graph.remove_nodes_degree_greater_than( 200)
 
-    graph = WikiGraph(language=language, sql_dir=wikipedia_dumpdir, cache_dir="cache", max_degree=max_degree)
-    print( graph.get_Milne_Witten( "Albert speer", "computer"))
-    print( graph.get_Milne_Witten( "kyaniet", "geranium"))
-    print( graph.get_Milne_Witten( "Jolien van Vliet", "Malachiet"))
-    print( graph.get_Milne_Witten( "Piet Hein Donner", "Malachiet"))
-    graph.save_cache_files()
 
     # (pages, pagelinks) = read_sql_from_dump( wikipedia_dumpdir, language)
     # counter = 0

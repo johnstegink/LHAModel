@@ -14,3 +14,4 @@ $VENVDIR/python createWikiGraph.py -l en -d $MAXDEGREE
 wait
 
 
+/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Code/Model

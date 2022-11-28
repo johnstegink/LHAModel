@@ -31,6 +31,7 @@ class WikiGraph:
         self.distance = None
         self.milne_witten = None
         self.distance_counter = 0
+        self.removed = set()
 
         (self.python_cache, self.nk_graph_cache, self.py_graph_cache, self.distance_cache, self.milne_witten_cache) = self.__cache_files()
         if not os.path.isfile( self.python_cache) or not os.path.isfile(self.nk_graph_cache) or not os.path.isfile(self.py_graph_cache):
@@ -78,10 +79,10 @@ class WikiGraph:
 
         print( "Saving graph...")
         nk.writeGraph(G=nk_graph, path=self.nk_graph_cache, fileformat=nk.Format.NetworkitBinary)
-        # self.__save_in_pickle(words, self.python_cache)
-        # self.__save_in_pickle(py_graph, self.py_graph_cache)
-        # self.__save_in_pickle({}, self.distance_cache)
-        # self.__save_in_pickle({}, self.milne_witten_cache)
+        self.__save_in_pickle(words, self.python_cache)
+        self.__save_in_pickle(py_graph, self.py_graph_cache)
+        self.__save_in_pickle({}, self.distance_cache)
+        self.__save_in_pickle({}, self.milne_witten_cache)
 
         # Free some memory
         del word_indexes
@@ -224,7 +225,7 @@ class WikiGraph:
 
         nk_graph = nk.Graph(n=len(words),weighted=False,directed=False)
         py_graph = []
-        # py_graph = [arr.array("i", []) for i in range(0,len(word_indexes))]  # Create a list of sets with for every word, it contains the destinations
+        py_graph = [arr.array("i", []) for i in range(0,len(word_indexes))]  # Create a list of sets with for every word, it contains the destinations
         counter = 0
         for record in self.__read_values_from_sql(sql_file):
             # Check the record
@@ -243,7 +244,7 @@ class WikiGraph:
                         nk_graph.addEdge(src_index, dest_index, 1.0, False)
 
                     # Add the destination to the source graph
-                    # py_graph[src_index].append(dest_index)
+                    py_graph[src_index].append(dest_index)
 
                 if counter % 1000000 == 0:
                     now = datetime.datetime.now()
@@ -285,7 +286,7 @@ class WikiGraph:
         dump_files = list(filter(dump_re.match, files))
         if len(dump_files) > 0:
             pages_file = dump_files[0]
-            links_file = pages_file.replace("-page.sql", "-pagelinks.sql")  # To make sure we use the same date
+            links_file = pages_file.replac  # To make sure we use the same date
             if links_file in files:
                 return (os.path.join(dump_dir, pages_file), os.path.join(dump_dir, links_file))
 
@@ -333,10 +334,11 @@ class WikiGraph:
         if self.nk_graph is None:
             self.nk_graph = self.__read_from_cache(self.nk_graph_cache)
 
-        if src >= 0 and target >= 0:
+        if src >= 0 and target >= 0 and src not in self.removed and target not in self.removed:
             biBFS = nk.distance.BidirectionalBFS(G=self.nk_graph, source=src, target=target)
             biBFS.run()
-            dist = int( biBFS.getHops())
+            print( [self.words[i] for i in biBFS.getPath()])
+            dist = int( biBFS.getDistance())
             if dist > 1000:
                 dist = -1
         else:
@@ -411,3 +413,47 @@ class WikiGraph:
 
         if not self.distance is None:
             self.__save_in_pickle(self.distance, self.distance_cache)
+
+    def remove_cache_files(self):
+        """
+        Remove the cache files for milne_witten and the distance
+        :return: None
+        """
+
+        if os.path.isfile( self.milne_witten_cache):
+            os.remove( self.milne_witten_cache)
+        if os.path.isfile( self.distance_cache):
+            os.remove( self.distance_cache)
+
+
+    def neighbors(self, word):
+        """
+        Returns a list of all neighbours of a node
+        :param word:
+        :return:
+        """
+        node = self.__get_graphid_of_word( word)
+        if self.nk_graph is None:
+            self.nk_graph = self.__read_from_cache(self.nk_graph_cache)
+
+        neighbors = []
+        for nb in self.nk_graph.iterNeighbors(node):
+            neighbors.append( self.words[nb])
+
+        return neighbors
+
+
+
+    def remove_nodes_degree_greater_than(self, max_degree):
+        """
+        Remove all nodes with a degree greater than the value
+        :param max_degree: maximum degree
+        :return:
+        """
+        if self.nk_graph is None:
+            self.nk_graph = self.__read_from_cache(self.nk_graph_cache)
+
+        nodes = [node for node in self.nk_graph.iterNodes() if self.nk_graph.degree( node) >= max_degree]
+        for node in nodes:
+            self.nk_graph.removeNode( node)
+            self.removed.add( node)
