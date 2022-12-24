@@ -126,13 +126,13 @@ def visualize_MilneWitten( data, imagefile):
             no[idx] = count
 
     plot = go.Figure(data=[go.Bar(
-            name="Positive",
+            name="Valid links",
             x = labels,
             y = yes,
             marker_color=colors[0]
     ),
         go.Bar(
-            name="Negative",
+            name="Invalid links",
             x = labels,
             y = no,
             marker_color = colors[1]
@@ -200,13 +200,13 @@ def visualize_Distance( data, imagefile):
             no[idx] = count
 
     plot = go.Figure(data=[go.Bar(
-            name="Positive",
+            name="Valid links",
             x = labels,
             y = yes,
             marker_color=colors[0]
         ),
         go.Bar(
-            name="Negative",
+            name="Invalid links",
             x = labels,
             y = no,
             marker_color = colors[1]

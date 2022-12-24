@@ -148,3 +148,17 @@ class DocumentRelations:
             self.is_dirty = False
 
         return self.per_src[id] if id in self.per_src else []
+
+
+    def get_similarity(self, src, dest):
+        """
+        Returns the similarity for the relation, 0 if no such relation exists
+        :param src: id of the source article
+        :param dest: id of the destination article
+        :return: similarity, 0 if it does not exist
+        """
+        for rel in self.relations:
+            if rel.get_src() == src  and  rel.get_dest() == dest:
+                return rel.get_similarity()
+
+        return 0

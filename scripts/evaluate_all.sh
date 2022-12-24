@@ -6,22 +6,30 @@ RELATIONSDIR=/Users/jstegink/thesis/output/relations
 VECTORDIR=/Users/jstegink/thesis/output/vectors
 METRICSDIR=/Users/jstegink/thesis/output/metrics
 HTMLDIR=/Users/jstegink/thesis/output/html
+ITERATION=1
 
 rm $METRICSDIR/*
 
-for SIM in {50..99..5}
-do
-  # Wikidata
-  PREFIX=wikidata_nl
-  $CURRENT/scripts/evaluate.sh $CORPUSDIR/wikidata/nl $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM
-  PREFIX=wikidata_en
-  $CURRENT/scripts/evaluate.sh $CORPUSDIR/wikidata/en $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM
-
   # Wikimatch
-#  PREFIX=wikimatch_nl
-#  $CURRENT/scripts/evaluate.sh $CORPUSDIR/wikimatch/nl $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM &
-#  PREFIX=wikimatch_en
-#  $CURRENT/scripts/evaluate.sh $CORPUSDIR/wikimatch/en $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM &
+  PREFIX=wikimatch_nl
+  $VENVDIR/python evaluate.py -c $CORPUS -i $RELATIONSFILE -o $METRICSFILE
+
+
+  $CURRENT/scripts/evaluate.sh $CORPUSDIR/wikimatch/nl $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM $ITERATION
+  PREFIX=wikimatch_en
+  $CURRENT/scripts/evaluate.sh $CORPUSDIR/wikimatch/en $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM $ITERATION
+
+  # WikiSim
+  PREFIX=WikiSim_nl
+  $CURRENT/scripts/evaluate.sh $CORPUSDIR/WikiSim/nl $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM $ITERATION
+  PREFIX=WikiSim_en
+  $CURRENT/scripts/evaluate.sh $CORPUSDIR/WikiSim/en $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM $ITERATION
+
+  # WiRe
+  PREFIX=WiRe_nl
+  $CURRENT/scripts/evaluate.sh $CORPUSDIR/WiRe/nl $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM $ITERATION
+  PREFIX=WiRe_en
+  $CURRENT/scripts/evaluate.sh $CORPUSDIR/WiRe/en $VECTORDIR/$PREFIX\.xml $RELATIONSDIR/$SIM/$PREFIX\.xml $METRICSDIR/$PREFIX\.tsv $HTMLDIR/$PREFIX/$SIM $SIM $ITERATION
 
   # S2ORC
 #  PREFIX=S2ORC
@@ -29,4 +37,3 @@ do
 
   wait
 done
-

@@ -19,7 +19,6 @@ def read_arguments():
     parser = argparse.ArgumentParser(description='Evaluate the score.')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
     parser.add_argument('-i', '--relationsxml', help='Xml file containing document relations', required=True)
-    parser.add_argument('-s', '--similarity_1', help="ignore = ignore similarity 1, positive or negative", choices=["positive", "negative"], default="positive")
     parser.add_argument('-o', '--output', help="TSV file with output metrics", required=True)
     args = vars(parser.parse_args())
 
@@ -28,7 +27,7 @@ def read_arguments():
         sys.stderr.write(f"Directory '{corpusdir}' doesn't contain any files\n")
         exit( 2)
 
-    return (corpusdir, args["relationsxml"], args["output"], args["similarity_1"])
+    return (corpusdir, args["relationsxml"], args["output"])
 
 
 def create_relations_grouped_on_src( relations):
@@ -69,12 +68,11 @@ def create_related( grouped_on_src, topk ):
 
 
 
-def evaluate(corpus, sims, grouped_on_src, sim1, topk):
+def evaluate(corpus, sims, grouped_on_src, topk):
     """
     Evaluate the relations compared to the similarities
     :param similarities: the corpus
     :param relations: DocumentRelations object
-    :param sim1: what to do with a similarity of 1, positive, negative
     :param topk: the top number of relevancy items to compare for calculation of the F1-value
     :return: mean f1
     """
@@ -82,13 +80,12 @@ def evaluate(corpus, sims, grouped_on_src, sim1, topk):
 
     generated_all = create_related( grouped_on_src, topk)
 
-    consider_1_as_positive = sim1 == "positive"
     f1s = []
     recalls = []
     precisions = []
 
     for src in corpus.get_ids():
-        relevant = set( [sim.get_dest() for sim in sims.get_similiarties(src) if sim.get_similarity() == 2 or (consider_1_as_positive and sim.get_similarity() == 1)] )
+        relevant = set( [sim.get_dest() for sim in sims.get_similiarties(src) if sim.get_similarity() == 1] )
         if len( relevant) > 0:
             recommended = generated_all[src] if src in generated_all else set()
 
@@ -111,7 +108,7 @@ def evaluate(corpus, sims, grouped_on_src, sim1, topk):
 
 # Main part of the script
 if __name__ == '__main__':
-    (inputdir, input, output, sim1) = read_arguments()
+    (inputdir, input, output) = read_arguments()
 
     functions.show_message("Reading corpus")
     corpus = Corpus(directory=inputdir)
@@ -133,7 +130,6 @@ if __name__ == '__main__':
             file.write("corpus\tlanguage\ttopk\tsim\tavgrel\tF1\tprecision\trecall\n")
 
     for topk in range(1, 25, 1):
-        (F1, precision, recall) = evaluate(corpus, sims, grouped_on_src, sim1, topk)
+        (F1, precision, recall) = evaluate(corpus, sims, grouped_on_src, topk)
         with open(output, mode="a", encoding="utf-8-sig") as file:
             file.write(f"{corpus.get_name()}\t{corpus.get_language()}\t{topk}\t{parameters['similarity']}\t{parameters['avgrel']}\t{F1}\t{precision}\t{recall}\n")
-
