@@ -56,3 +56,4 @@ class Section:
         """
 
         return sent_tokenize( self.get_fulltext(), self.language)
+

@@ -5,8 +5,9 @@ import argparse
 import sys
 import os
 import functions
+from SMASH.DocumentPreprocessor import DocumentPreprocessor
 from texts.corpus import Corpus
-
+from texts.similarities import Similarities
 
 
 def read_arguments():
@@ -17,7 +18,7 @@ def read_arguments():
 
     parser = argparse.ArgumentParser(description='Trans a SMASH model based on the corpus')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
-    parser.add_argument('-p', '--pairs', help='XML file containing the shuffled pairs from corpus')
+    parser.add_argument('-p', '--pairs', help='XML file containing the shuffled pairs from corpus, if it exists, it won''t be created.')
     parser.add_argument('-o', '--model', help='Output file for the model', required=True)
     args = vars(parser.parse_args())
 
@@ -32,18 +33,22 @@ def read_arguments():
     return (corpusdir, args["pairs"], args["model"])
 
 
-def createdocument_pairs( corpus, outputfile):
+def readdocument_pairs(corpus, pairsfile):
     """
-    Create a list of document pairs of the corpus, matching and non matching items are evenly distributed
-    Writes the data to the outputfile
+    Create a list of document pairs of the corpus, matching and non matching items are evenly distributed.
+    If the file exists it will be read otherwise it writes the data to the outputfile
     :param corpus:
-    :return:
+    :return: Similarities
     """
+    if not os.path.exists(pairsfile):
+        pairs = corpus.read_similarities()
+        corpus.add_dissimilarities( pairs)
 
-    pairs = corpus.read_similarities()
-    corpus.add_dissimilarities( pairs)
+        pairs.save(file=pairsfile, shuffled=True)
 
-    pairs.save( file=outputfile, shuffled=True)
+    return Similarities.read(pairsfile)
+
+
 
 
 # Main part of the script
@@ -55,7 +60,11 @@ if __name__ == '__main__':
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
     functions.show_message("Creating document pairs")
-    createdocument_pairs( corpus, pairs_file)
+    pairs = readdocument_pairs( corpus, pairs_file)
+
+    # Preprocess the documents
+    preprocessor = DocumentPreprocessor( corpus=corpus, similarities=pairs)
+    (sections, sentences, words) = preprocessor.get_statistics()
 
     functions.show_message("Done")
 
