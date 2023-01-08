@@ -1,4 +1,6 @@
 # Class to read a corpus in the Common Format and iterates through documents
+import random
+
 import functions
 from texts.document import Document
 from texts.similarities import Similarities
@@ -128,9 +130,10 @@ class Corpus:
             return document
 
 
-    def read_similarities(self):
+    def read_similarities(self, single=False):
         """
         Return a new similarities object with all similarities in this corpus
+        :param single: If true the links are made only one way
         :return:
         """
 
@@ -139,6 +142,34 @@ class Corpus:
             document = self.getDocument(src)
             for (dest, similarity) in document.get_links():
                 sim.add( src, dest, similarity)
-                sim.add( dest, src, similarity)  # Optional
+                if not single:
+                    sim.add( dest, src, similarity)  # Optional
 
         return sim
+
+
+    def add_dissimilarities(self, sims):
+        """
+        Add a dissimelarity for every similarity
+        :param sims: The similarities that the dissimilarities will be added to
+        :return: None
+        """
+
+        all = sims.get_all_similarities()
+        existsing = { f"{sim.get_src()}#{sim.get_dest()}" for sim in all }
+        for sim in all:
+            # find the next destination that is not linked
+            dest = None
+            src = sim.get_src()
+            while dest is None:
+                dest = random.choice( self.ids)
+                if f"{src}#{dest}" in existsing:  # We had this already
+                    dest = None
+
+            if dest is None:
+                raise f"Cannot find item that is not linked for {src}"
+
+            else:
+                existsing.add(f"{src}#{dest}")
+                sims.add( src, dest, 0)
+

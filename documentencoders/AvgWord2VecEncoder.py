@@ -1,4 +1,4 @@
-# Class for the word2vec encoder
+word# Class for the word2vec encoder
 import os
 
 import numpy as np

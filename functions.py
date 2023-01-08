@@ -29,6 +29,14 @@ def create_directory_if_not_exists(dir_name):
         os.remove(file)
 
 
+def create_directory_for_file_if_not_exists( filename):
+    """
+    Creates the directory for the file if not does not exist
+    """
+
+    os.makedirs( os.path.dirname( filename), exist_ok=True)
+
+
 def remove_redirectory_recursivly( dir_name):
     shutil.rmtree( dir_name)
 

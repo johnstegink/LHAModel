@@ -1,4 +1,5 @@
 # Class to read and write document similarities
+import random
 
 from texts.similarity import Similarity
 from lxml import etree as ET
@@ -24,24 +25,34 @@ class Similarities:
         self.similarities[src][dest] = Similarity(src, dest, similarity)
 
 
-    def save(self, file):
+    def save(self, file, shuffled=False):
         """
         Save the similarities in the given Xml file
         :param file:the output file
+        :param shuffled: true if the list is shuffled first
         :return:
         """
 
-        root = ET.fromstring("<similarities></similarities>")
+        # Collect all src and destination combinations first
+        pairs = []
         for src in self.similarities.keys():
             for dest in self.similarities[src].keys():
                 similarity = self.similarities[src][dest]
-                document = ET.SubElement(root, "relation")
-                ET.SubElement(document, "src").text = similarity.get_src()
-                ET.SubElement(document, "dest").text = similarity.get_dest()
-                ET.SubElement(document, "similarity").text = str(similarity.get_similarity())
+                pairs.append( (src, dest, similarity.get_similarity()))
+
+        if shuffled:
+            random.shuffle( pairs)
+
+        root = ET.fromstring("<similarities></similarities>")
+        for (src, dest, similarity) in pairs:
+            document = ET.SubElement(root, "relation")
+            ET.SubElement(document, "src").text = src
+            ET.SubElement(document, "dest").text = dest
+            ET.SubElement(document, "similarity").text = str(similarity)
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))
+
 
 
     @staticmethod
@@ -72,6 +83,20 @@ class Similarities:
             return list( self.similarities[src].values())
         else:
             return []   # No similarities
+
+    def get_all_similarities(self):
+        """
+        Returns a list with all similarities
+        :return:
+        """
+
+        lst = []
+        for src in self.similarities:
+            for sims in self.similarities[src].values():
+                lst.append(sims)
+
+        return lst
+
 
 
     def __iter__(self):
