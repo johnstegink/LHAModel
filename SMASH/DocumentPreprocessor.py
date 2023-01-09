@@ -18,15 +18,12 @@ class DocumentPreprocessor:
             self.documentids.add( sim.get_dest())
 
         self.documents = {}
-        self.documents_filled = False
 
-    def __fill_documents(self):
+    def __read_documents(self):
         """
-        Read all documents, has to happen only once
+        Read all documents
         :return:
         """
-        if self.documents_filled:
-            return
 
         nonalpha = re.compile(r"[^\w]|[0-9]")
 
@@ -43,9 +40,7 @@ class DocumentPreprocessor:
                 if len( sentences) > 0:
                     sections.append( sentences)
 
-            self.documents[id] = sections
-
-        self.documents_filled = True
+            yield (id, sections)
 
     def __update_dict(self, dict, len):
         """
@@ -68,9 +63,8 @@ class DocumentPreprocessor:
         sections = {}
         sentences = {}
         words = {}
-        self.__fill_documents()
 
-        for doc in self.documents.values():
+        for (id, doc) in self.__read_documents():
             self.__update_dict( sections, len(doc))
             for section in doc:
                 self.__update_dict( sentences, len(section))
