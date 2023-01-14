@@ -159,7 +159,7 @@ class DocumentPreprocessor:
                 for line_index in range( self.len_with_maximum( line_embeddings, word_cnt)):
                     zeros[section_index][sent_index][line_index] = line_embeddings[line_index]
 
-        return torch.from_numpy( zeros)
+        return zeros
 
 
     def CreateOrLoadEmbeddings(self, id, embeddingsdir, max_sections, max_sentences, max_words, dim=1024 ):
@@ -178,13 +178,12 @@ class DocumentPreprocessor:
         dir = os.path.join( embeddingsdir, f"embeddings_{max_sections}_{max_sentences}_{max_words}_{dim}")
         os.makedirs( dir, exist_ok=True)
 
-        file = os.path.join( embeddingsdir, f"{id}.pt")
+        file = os.path.join( dir, f"{id}.npz")
         if os.path.exists( file):
-            return torch.load(file)
+            return numpy.load( file)
         else:
             doc = self.corpus.getDocument( id)
             text = self.__read_document( doc)
-            tensor = self.__pad( text, section_cnt=max_sections, sent_cnt=max_sentences, word_cnt=max_words, dim=dim)
-            torch.save( tensor, file)
+            nparray = self.__pad( text, section_cnt=max_sections, sent_cnt=max_sentences, word_cnt=max_words, dim=dim)
 
-            return tensor
+            numpy.savez_compressed(file, nparray)
