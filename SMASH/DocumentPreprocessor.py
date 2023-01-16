@@ -105,7 +105,13 @@ class DocumentPreprocessor:
         sentences = {}
         words = {}
 
+        # maxdocs = 100
+        # docs = 0
         for (id, doc) in self.__read_documents():
+            # docs += 1
+            # if docs > maxdocs:
+            #     break
+
             self.__update_dict( sections, len(doc))
             for section in doc:
                 self.__update_dict( sentences, len(section))
@@ -149,18 +155,34 @@ class DocumentPreprocessor:
         :param dim:
         :return:
         """
-        sent_cnt += 1
         zeros = numpy.zeros((section_cnt, sent_cnt, word_cnt, dim))
 
         for section_index in range( self.len_with_maximum( input, section_cnt)):
-            sent_embeddings = self.embedder.sents2elmo( input[section_index])
+            sent_embeddings = self.embedder.sents2elmo( self.__truncate_sentences( input[section_index], sent_cnt, word_cnt))
             for sent_index in range( self.len_with_maximum(sent_embeddings, sent_cnt)):
                 line_embeddings = sent_embeddings[sent_index]
-                for line_index in range( self.len_with_maximum( line_embeddings, word_cnt)):
-                    zeros[section_index][sent_index][line_index] = line_embeddings[line_index]
+                for word_index in range( self.len_with_maximum( line_embeddings, word_cnt)):
+                    zeros[section_index][sent_index][word_index] = line_embeddings[word_index]
 
         return zeros
 
+
+    def __truncate_sentences(self, section, sent_cnt, word_cnt):
+        """
+        Truncate the number of sentences and number of words in the sentence
+        :param section:
+        :param sent_cnt:
+        :param word_cnt:
+        :return:
+        """
+        nw = []
+        for sent_index in range(self.len_with_maximum(section, sent_cnt)):
+            sentence = section[sent_index]
+            if len( sentence) > word_cnt:
+                sentence = sentence[:word_cnt]
+            nw.append( sentence)
+
+        return nw
 
     def CreateOrLoadEmbeddings(self, id, embeddingsdir, max_sections, max_sentences, max_words, dim=1024 ):
         """
