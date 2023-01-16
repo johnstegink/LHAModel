@@ -6,23 +6,47 @@ import numpy
 import torch
 from nltk.tokenize import word_tokenize
 from elmoformanylangs import Embedder
+from SMASH.CorpusDataset import CorpusDataset
 
 class DocumentPreprocessor:
-    def __init__(self, corpus, similarities, elmomodel):
+    def __init__(self, corpus, similarities, elmomodel, embeddingsdir, max_sections, max_sentences, max_words, dim=1024):
         """
         Fill the class properties
         :param corpus: The corpus containing the documents
         :param similarities:  The similarities from which to get the IDs
         """
         self.corpus = corpus
+        self.similarities = similarities
+        self.embeddingsdir = embeddingsdir
+        self.max_sections = max_sections
+        self.max_sentences = max_sentences
+        self.max_words = max_words
+        self.dim = dim
 
         self.documentids = set()  # Contains al documentids
         for sim in similarities.get_all_similarities():
             self.documentids.add( sim.get_src())
             self.documentids.add( sim.get_dest())
 
+        (self.train, self.test, self.validation) = self.__split_list( similarities)
+
         self.elmomodel = elmomodel
         self.embedder = Embedder(self.elmomodel)  # Load the model
+
+
+    def __split_list(self, similarities):
+        """
+        Split the similarities into a train, test and validation set (60,20,20)
+        :param ids:
+        :return:
+        """
+
+        sims = similarities.get_all_similarities()
+        test = int(len(sims) * 0.6)
+        val = int(len(sims) * 0.8)
+
+        return (sims[:test], sims[test:val], sims[val:])
+
 
 
     def get_all_documentids(self):
@@ -153,7 +177,7 @@ class DocumentPreprocessor:
         :param sent_cnt:
         :param word_cnt:
         :param dim:
-        :return:
+        :ret urn:
         """
         zeros = numpy.zeros((section_cnt, sent_cnt, word_cnt, dim))
 
@@ -184,28 +208,46 @@ class DocumentPreprocessor:
 
         return nw
 
-    def CreateOrLoadEmbeddings(self, id, embeddingsdir, max_sections, max_sentences, max_words, dim=1024 ):
+    def create_or_load_embedding(self, id):
         """
-        Create or load the numpy embeddings for the given document as a tensor
+        Create or load the numpy embeddings for the given document as a numpy array
         :param id:
-        :param embeddingsdir:
-        :param max_sections:
-        :param max_sentences:
-        :param max_words:
-        :param dim:
         :return:
         """
 
         # First create the embeddings directory if it is available
-        dir = os.path.join( embeddingsdir, f"embeddings_{max_sections}_{max_sentences}_{max_words}_{dim}")
+        dir = os.path.join( self.embeddingsdir, f"embeddings_{self.max_sections}_{self.max_sentences}_{self.max_words}_{self.dim}")
         os.makedirs( dir, exist_ok=True)
 
-        file = os.path.join( dir, f"{id}.npz")
+        file = os.path.join( dir, f"{id}.npy")
         if os.path.exists( file):
             return numpy.load( file)
         else:
             doc = self.corpus.getDocument( id)
             text = self.__read_document( doc)
-            nparray = self.__pad( text, section_cnt=max_sections, sent_cnt=max_sentences, word_cnt=max_words, dim=dim)
+            nparray = self.__pad( text, section_cnt=self.max_sections, sent_cnt=self.max_sentences, word_cnt=self.max_words, dim=self.dim)
 
-            numpy.savez_compressed(file, nparray)
+            numpy.save(file, nparray, allow_pickle=False)
+
+            return nparray
+
+    def create_training_dataset(self):
+        """
+        Create the training set
+        :return:
+        """
+        return CorpusDataset( self, self.train)
+
+    def create_test_dataset(self):
+        """
+        Create the test set
+        :return:
+        """
+        return CorpusDataset( self, self.test)
+
+    def create_validation_dataset(self):
+        """
+        Create the validation set
+        :return:
+        """
+        return CorpusDataset(self, self.validation)

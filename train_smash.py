@@ -14,6 +14,7 @@ from texts.similarities import Similarities
 import plotly.express as px
 import plotly.graph_objects as go
 import time
+from SMASH.Siamese_network_trainer import SiameseNetworkTrainer
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.ERROR)
@@ -185,11 +186,22 @@ if __name__ == '__main__':
     pairs = readdocument_pairs( corpus, os.path.join( cache_dir, "pairs.xml"))
 
     # Preprocess the documents
-    preprocessor = DocumentPreprocessor( corpus=corpus, similarities=pairs, elmomodel=os.path.join(elmo_model_dir, corpus.language_code))
+    preprocessor = DocumentPreprocessor( corpus=corpus,
+                                         similarities=pairs,
+                                         elmomodel=os.path.join(elmo_model_dir, corpus.language_code),
+                                         embeddingsdir=cache_dir,
+                                         max_sections=max_sections,
+                                         max_sentences=max_sentences,
+                                         max_words = max_words)
 
-    documentids = sorted( preprocessor.get_all_documentids())
-    for id in tqdm(documentids, desc="Creating embeddings"):
-        preprocessor.CreateOrLoadEmbeddings(id=id, embeddingsdir=cache_dir, max_sections=max_sections, max_sentences=max_sentences, max_words=max_words)
+    # documentids = sorted( preprocessor.get_all_documentids())
+    # for id in tqdm(documentids, desc="Creating embeddings"):
+    #     preprocessor.create_or_load_embedding(id=id)
+
+    trainer = SiameseNetworkTrainer()
+    trainer.train( preprocessor, 3)
+
+
 
     if not imgdir is None:
         functions.show_message("Creating histograms")
