@@ -2,10 +2,10 @@
 
 CORPUSDIR=/Users/jstegink/thesis/corpora
 CURRENT=`pwd`
-RELATIONSDIR=/Users/jstegink/thesis/output/relations
-VECTORDIR=/Users/jstegink/thesis/output/vectors
-METRICSDIR=/Users/jstegink/thesis/output/metrics
-HTMLDIR=/Users/jstegink/thesis/output/html
+RELATIONSDIR=/Volumes/Extern/Studie/studie/relations
+VECTORDIR=/Volumes/Extern/Studie/studie/vectors
+METRICSDIR=/Volumes/Extern/Studie/studie/metrics
+HTMLDIR=/Volumes/Extern/Studie/studie/html
 ITERATION=1
 
 rm $METRICSDIR/*

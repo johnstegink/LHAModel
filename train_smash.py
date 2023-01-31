@@ -4,7 +4,7 @@ import argparse
 import logging
 import sys
 import os
-
+import torch
 from tqdm import tqdm
 
 import functions
@@ -46,6 +46,20 @@ def read_arguments():
     functions.create_directory_for_file_if_not_exists( args["model"])
 
     return (corpusdir, args["cachedir"], args["model"], args["elmomodel"], args["histogramdir"], args["sections"], args["sentences"], args["words"])
+
+
+
+def get_gpu_device():
+    """
+    Returns the device the model will run on
+    :return:
+    """
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    else:
+        print("No GPU device found")
+        return torch.device("cpu")
+
 
 
 def readdocument_pairs(corpus, pairsfile):
@@ -186,17 +200,18 @@ if __name__ == '__main__':
     pairs = readdocument_pairs( corpus, os.path.join( cache_dir, "pairs.xml"))
 
     # Preprocess the documents
-    preprocessor = DocumentPreprocessor( corpus=corpus,
-                                         similarities=pairs,
-                                         elmomodel=os.path.join(elmo_model_dir, corpus.language_code),
-                                         embeddingsdir=cache_dir,
-                                         max_sections=max_sections,
-                                         max_sentences=max_sentences,
-                                         max_words = max_words)
+    preprocessor = DocumentPreprocessor(corpus=corpus,
+                                        similarities=pairs,
+                                        elmomodel=os.path.join(elmo_model_dir, corpus.language_code),
+                                        embeddingsdir=cache_dir,
+                                        max_sections=max_sections,
+                                        max_sentences=max_sentences,
+                                        max_words = max_words,
+                                        device=get_gpu_device())
 
-    # documentids = sorted( preprocessor.get_all_documentids())
-    # for id in tqdm(documentids, desc="Creating embeddings"):
-    #     preprocessor.create_or_load_embedding(id=id)
+    documentids = sorted( preprocessor.get_all_documentids())
+    for id in tqdm(documentids, desc="Creating embeddings"):
+         preprocessor.create_or_load_embedding(id=id)
 
     trainer = SiameseNetworkTrainer()
     trainer.train( preprocessor, 3)

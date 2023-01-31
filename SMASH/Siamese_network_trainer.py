@@ -10,10 +10,13 @@ class SiameseNetworkTrainer:
     def __init__(self):
         self.dummy = 1
 
+
     def train(self, preprocessor,  nr_of_epochs):
+        dev = preprocessor.get_device()
         model = Siamese()
         opt = optimizer.SGD(model.parameters(), lr=0.01, momentum=0.9)  # Gradient descent optimizer
         loss_fn = nn.BCEWithLogitsLoss()
+        model.to( dev)
 
         running_loss = 0.0
         for epoch in range( nr_of_epochs):
@@ -28,7 +31,7 @@ class SiameseNetworkTrainer:
                 opt.step()
 
                 running_loss += loss.item()
-                if i % 20 == 1999:    # print every 20 mini-batches
+                if i % 20 == 0:    # print every 20 mini-batches
                     print('[%d, %5d] loss: %.3f' %
                           (epoch + 1, i + 1, running_loss / 2000))
                     running_loss = 0.0

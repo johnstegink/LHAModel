@@ -3,7 +3,7 @@
 COPRUSDIR=/Users/jstegink/thesis/corpora
 CURRENT=`pwd`
 VENVDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Code/LHA/py/bin
-OUTDIR=/Users/jstegink/thesis/output/vectors
+OUTDIR=/Volumes/Extern/Studie/studie/vectors
 
 source $VENVDIR/activate
 cd $CURRENT

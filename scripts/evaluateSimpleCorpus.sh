@@ -3,7 +3,7 @@
 COPRUSDIR=/Users/jstegink/thesis/corpora/testset
 CURRENT=`pwd`
 VENVDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Code/LHA/py/bin
-OUTDIR=/Users/jstegink/thesis/output/simple
+OUTDIR=/Volumes/Extern/Studie/studie/simple
 
 ALGORITHM=word2vec
 

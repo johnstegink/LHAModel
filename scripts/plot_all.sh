@@ -1,6 +1,6 @@
 #!/bin/zsh -m
 
-METRICSDIR=/Users/jstegink/thesis/output/metrics
+METRICSDIR=/Volumes/Extern/Studie/studie/metrics
 ITERATION=1
 LATEXDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Document/Latex/images
 

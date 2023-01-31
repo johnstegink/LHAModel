@@ -3,8 +3,8 @@
 COPRUSDIR=/Users/jstegink/thesis/corpora
 CURRENT=`pwd`
 VENVDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Code/LHA/py/bin
-VECTORDIR=/Users/jstegink/thesis/output/vectors
-OUTDIR=/Users/jstegink/thesis/output/relations
+VECTORDIR=/Volumes/Extern/Studie/studie/vectors
+OUTDIR=/Volumes/Extern/Studie/studie/relations
 
 SIM=80
 MAXDOC=30

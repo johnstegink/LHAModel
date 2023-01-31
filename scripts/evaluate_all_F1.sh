@@ -1,8 +1,8 @@
 #!/bin/zsh -m
 
 CORPUSDIR=/Users/jstegink/thesis/corpora
-RELATIONSDIR=/Users/jstegink/thesis/output/relations
-METRICSDIR=/Users/jstegink/thesis/output/metrics
+RELATIONSDIR=/Volumes/Extern/Studie/studie/relations
+METRICSDIR=/Volumes/Extern/Studie/studie/metrics
 LATEXDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Document/Latex/images
 ITERATION=2
 

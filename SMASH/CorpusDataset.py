@@ -5,14 +5,14 @@ import torch
 import torch.nn as nn
 
 class CorpusDataset( Dataset):
-    def __init__(self, preprocessor, similarities):
+    def __init__(self, preprocessor, similarities, device):
         """
         Creates a dataset for the preprocessor
         :param preprocessor:
         :param similarities: The similarities to be served by this dataset
         """
         self.preprocessor = preprocessor
-
+        self.device = device
         self.similarities = similarities
 
     def __getitem__(self, index):
@@ -28,9 +28,9 @@ class CorpusDataset( Dataset):
         src = self.preprocessor.create_or_load_embedding( sim.get_src())
         dest = self.preprocessor.create_or_load_embedding( sim.get_dest())
 
-        return (  torch.from_numpy(src),
-                  torch.from_numpy(dest),
-                  torch.tensor( [[float(sim.get_similarity())]])
+        return (  torch.tensor(src, dtype=torch.float32, device=self.device),
+                  torch.tensor(dest, dtype=torch.float32, device=self.device),
+                  torch.tensor( [[float(sim.get_similarity())]], dtype=torch.float32, device=self.device)
                )
 
 
