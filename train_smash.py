@@ -32,9 +32,9 @@ def read_arguments():
     parser.add_argument('-i', '--histogramdir', help='Directory to which the histograms will be written', required=False)
     parser.add_argument('-c1', '--sections', help='Maximum number of sections per document', required=False, type=int, default=6)
     parser.add_argument('-c2', '--sentences', help='Maximum number of sentences per section', required=False, type=int, default=15)
-    parser.add_argument('-c3', '--words', help='Maximum number of words per sentence', required=False, type=int, default=30)
-    parser.add_argument('-e', '--elmomodel', help='Directory containing the ELMO models per language', required=True)
+    parser.add_argument('-c3', '--tokens', help='Maximum number of tokens per sentence', required=False, type=int, default=64)
     parser.add_argument('-o', '--model', help='Output file for the model', required=True)
+    parser.add_argument('-l', '--language', help='Model language', required=True, default="en", choices=["nl", "en"])
     args = vars(parser.parse_args())
 
     corpusdir = args["corpusdirectory"] if "corpusdirectory" in args else None
@@ -45,8 +45,9 @@ def read_arguments():
     functions.create_directory_for_file_if_not_exists( args["cachedir"])
     functions.create_directory_for_file_if_not_exists( args["model"])
 
-    return (corpusdir, args["cachedir"], args["model"], args["elmomodel"], args["histogramdir"], args["sections"], args["sentences"], args["words"])
+    bert_model = "GroNLP/bert-base-dutch-cased" if args["language"] == "nl" else "bert-base-uncased"
 
+    return (corpusdir, args["cachedir"], args["model"], bert_model, args["histogramdir"], args["sections"], args["sentences"], args["tokens"])
 
 
 def get_gpu_device():
@@ -187,7 +188,7 @@ def create_cummulative(cummulative_image, graphcolors, histogram_xs, histogram_y
 
 # Main part of the script
 if __name__ == '__main__':
-    (corpusdir, cache_base_dir, model, elmo_model_dir, imgdir, max_sections, max_sentences, max_words) = read_arguments()
+    (corpusdir, cache_base_dir, model, bert_model, imgdir, max_sections, max_sentences, max_tokens) = read_arguments()
 
     functions.show_message("Reading corpus")
     corpus = Corpus(directory=corpusdir)
@@ -202,19 +203,19 @@ if __name__ == '__main__':
     # Preprocess the documents
     preprocessor = DocumentPreprocessor(corpus=corpus,
                                         similarities=pairs,
-                                        elmomodel=os.path.join(elmo_model_dir, corpus.language_code),
+                                        modelname=bert_model,
                                         embeddingsdir=cache_dir,
                                         max_sections=max_sections,
                                         max_sentences=max_sentences,
-                                        max_words = max_words,
+                                        max_tokens = max_tokens,
                                         device=get_gpu_device())
 
     documentids = sorted( preprocessor.get_all_documentids())
     for id in tqdm(documentids, desc="Creating embeddings"):
-         preprocessor.create_or_load_embedding(id=id)
+         preprocessor.create_or_load_embedding(docid=id)
 
-    trainer = SiameseNetworkTrainer()
-    trainer.train( preprocessor, 3)
+    # trainer = SiameseNetworkTrainer()
+    # trainer.train( preprocessor, 3)
 
 
 

@@ -5,11 +5,11 @@ import os
 import numpy
 import torch
 from nltk.tokenize import word_tokenize
-from elmoformanylangs import Embedder
 from SMASH.CorpusDataset import CorpusDataset
+from SMASH.BertEmbedder import BertEmbedder
 
 class DocumentPreprocessor:
-    def __init__(self, corpus, similarities, elmomodel, embeddingsdir, max_sections, max_sentences, max_words, device, dim=1024):
+    def __init__(self, corpus, similarities, modelname, embeddingsdir, max_sections, max_sentences, max_tokens, device, dim=768):
         """
         Fill the class properties
         :param corpus: The corpus containing the documents
@@ -20,7 +20,7 @@ class DocumentPreprocessor:
         self.embeddingsdir = embeddingsdir
         self.max_sections = max_sections
         self.max_sentences = max_sentences
-        self.max_words = max_words
+        self.max_tokens = max_tokens
         self.device = device
         self.dim = dim
 
@@ -31,8 +31,7 @@ class DocumentPreprocessor:
 
         (self.train, self.test, self.validation) = self.__split_list( similarities)
 
-        self.elmomodel = elmomodel
-        self.embedder = Embedder(self.elmomodel)  # Load the model
+        self.embedder = BertEmbedder(modelname)  # Load the model
 
 
     def get_device(self):
@@ -179,6 +178,21 @@ class DocumentPreprocessor:
         """
         return min(len(lst), maximum)
 
+
+    def __bert_embeddings(self, text_data, max_sections, max_sentences, max_tokens, dim=768):
+        zeros = torch.zeros((max_sections, max_sentences, dim))
+
+        for section_index in range(self.len_with_maximum(text_data, max_sections)):
+            section = text_data[section_index]
+            for sent_index in range( self.len_with_maximum(section, max_sentences)):
+                sentence = " ".join( section[sent_index]) + "." # Construct a normal sentence
+                sentence_embeddings = self.embedder.embed_sentence( sentence, max_tokens)
+                zeros[section_index][sent_index] = sentence_embeddings
+
+        return zeros
+
+
+
     def __pad(self, the_input, section_cnt=2, sent_cnt=2, word_cnt=50, dim=1024):
         """
         Create a numpy matrix for this input
@@ -220,26 +234,26 @@ class DocumentPreprocessor:
 
     def create_or_load_embedding(self, docid):
         """
-        Create or load the numpy embeddings for the given document as a numpy array
+        Create or load the pytorch embeddings for the given document
         :param docid:
         :return:
         """
 
         # First create the embeddings directory if it is available
-        directory = os.path.join( self.embeddingsdir, f"embeddings_{self.max_sections}_{self.max_sentences}_{self.max_words}_{self.dim}")
+        directory = os.path.join( self.embeddingsdir, f"embeddings_{self.max_sections}_{self.max_sentences}_{self.max_tokens}_{self.dim}")
         os.makedirs( directory, exist_ok=True)
 
         file = os.path.join(directory, f"{docid}.npy")
         if os.path.exists( file):
-            return numpy.load( file)
+            return torch.load( file)
         else:
             doc = self.corpus.getDocument(docid)
             text = self.__read_document( doc)
-            nparray = self.__pad( text, section_cnt=self.max_sections, sent_cnt=self.max_sentences, word_cnt=self.max_words, dim=self.dim)
+            tensor = self.__bert_embeddings( text, max_sections=self.max_sections, max_sentences=self.max_sentences, max_tokens=self.max_tokens, dim=self.dim)
 
-            numpy.save(file, nparray)
+            torch.save(tensor, file)
 
-            return nparray
+            return tensor
 
     def create_training_dataset(self):
         """
