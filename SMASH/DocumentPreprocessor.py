@@ -9,7 +9,7 @@ from SMASH.CorpusDataset import CorpusDataset
 from SMASH.BertEmbedder import BertEmbedder
 
 class DocumentPreprocessor:
-    def __init__(self, corpus, similarities, modelname, embeddingsdir, max_sections, max_sentences, max_tokens, device, dim=768):
+    def __init__(self, corpus, similarities, modelname, embeddingsdir, max_sections, max_sentences, max_tokens, device, debug = False, dim=768):
         """
         Fill the class properties
         :param corpus: The corpus containing the documents
@@ -24,6 +24,8 @@ class DocumentPreprocessor:
         self.device = device
         self.dim = dim
 
+        self.max_size = 50 if debug else None
+
         self.documentids = set()  # Contains al documentids
         for sim in similarities.get_all_similarities():
             self.documentids.add( sim.get_src())
@@ -31,7 +33,7 @@ class DocumentPreprocessor:
 
         (self.train, self.test, self.validation) = self.__split_list( similarities)
 
-        self.embedder = BertEmbedder(modelname)  # Load the model
+        self.embedder = BertEmbedder(modelname, device)  # Load the model
 
 
     def get_device(self):
@@ -51,6 +53,8 @@ class DocumentPreprocessor:
         """
 
         sims = similarities.get_all_similarities()
+        if not self.max_size is None:
+            sims = sims[0:self.max_size]
         test = int(len(sims) * 0.6)
         val = int(len(sims) * 0.8)
 
@@ -180,16 +184,24 @@ class DocumentPreprocessor:
 
 
     def __bert_embeddings(self, text_data, max_sections, max_sentences, max_tokens, dim=768):
-        zeros = torch.zeros((max_sections, max_sentences, dim))
+        result = torch.zeros((max_sections, max_sentences, dim))
 
         for section_index in range(self.len_with_maximum(text_data, max_sections)):
             section = text_data[section_index]
-            for sent_index in range( self.len_with_maximum(section, max_sentences)):
-                sentence = " ".join( section[sent_index]) + "." # Construct a normal sentence
-                sentence_embeddings = self.embedder.embed_sentence( sentence, max_tokens)
-                zeros[section_index][sent_index] = sentence_embeddings
 
-        return zeros
+            # Create a list of sentences
+            sentences = []
+            for sent_index in range( self.len_with_maximum(section, max_sentences)):
+                sentences.append( " ".join( section[sent_index]) + ".") # Construct a normal sentence
+
+            # Embed the sentences at once
+            sentence_embeddings = self.embedder.embed_sentences(sentences, max_tokens)
+
+            # Put the embeddings in the result
+            for sent_index in range(len( sentence_embeddings)):
+                result[section_index][sent_index] = sentence_embeddings[sent_index]
+
+        return result
 
 
 
@@ -243,7 +255,7 @@ class DocumentPreprocessor:
         directory = os.path.join( self.embeddingsdir, f"embeddings_{self.max_sections}_{self.max_sentences}_{self.max_tokens}_{self.dim}")
         os.makedirs( directory, exist_ok=True)
 
-        file = os.path.join(directory, f"{docid}.npy")
+        file = os.path.join(directory, f"{docid}.pt")
         if os.path.exists( file):
             return torch.load( file)
         else:

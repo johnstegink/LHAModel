@@ -55,7 +55,7 @@ def get_gpu_device():
     Returns the device the model will run on
     :return:
     """
-    if torch.backends.mps.is_available():
+    if False and torch.backends.mps.is_available():
         return torch.device("mps")
     else:
         print("No GPU device found")
@@ -200,6 +200,7 @@ if __name__ == '__main__':
     functions.show_message("Creating document pairs")
     pairs = readdocument_pairs( corpus, os.path.join( cache_dir, "pairs.xml"))
 
+    device = get_gpu_device()
     # Preprocess the documents
     preprocessor = DocumentPreprocessor(corpus=corpus,
                                         similarities=pairs,
@@ -208,14 +209,15 @@ if __name__ == '__main__':
                                         max_sections=max_sections,
                                         max_sentences=max_sentences,
                                         max_tokens = max_tokens,
-                                        device=get_gpu_device())
+                                        debug=True,
+                                        device=device)
 
     documentids = sorted( preprocessor.get_all_documentids())
     for id in tqdm(documentids, desc="Creating embeddings"):
          preprocessor.create_or_load_embedding(docid=id)
 
-    # trainer = SiameseNetworkTrainer()
-    # trainer.train( preprocessor, 3)
+    trainer = SiameseNetworkTrainer()
+    trainer.train( preprocessor, 3)
 
 
 

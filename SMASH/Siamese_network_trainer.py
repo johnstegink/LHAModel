@@ -13,10 +13,11 @@ class SiameseNetworkTrainer:
 
     def train(self, preprocessor,  nr_of_epochs):
         dev = preprocessor.get_device()
-        model = Siamese()
+        model = Siamese(preprocessor=preprocessor)
         opt = optimizer.SGD(model.parameters(), lr=0.01, momentum=0.9)  # Gradient descent optimizer
         loss_fn = nn.BCEWithLogitsLoss()
         model.to( dev)
+
 
         running_loss = 0.0
         for epoch in range( nr_of_epochs):

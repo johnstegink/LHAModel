@@ -15,6 +15,11 @@ class CorpusDataset( Dataset):
         self.device = device
         self.similarities = similarities
 
+        self.tensors = {}
+        for id in preprocessor.get_all_documentids():
+            self.tensors[id] = preprocessor.create_or_load_embedding(docid=id).to(device)
+
+
     def __getitem__(self, index):
         """
         Returns the item with the given index from the dataset
@@ -25,13 +30,10 @@ class CorpusDataset( Dataset):
         sim = self.similarities[index]
 
         # Retrieve the vectors for the source and destination
-        src = self.preprocessor.create_or_load_embedding( sim.get_src())
-        dest = self.preprocessor.create_or_load_embedding( sim.get_dest())
+        src = self.tensors[sim.get_src()]
+        dest = self.tensors[sim.get_dest()]
 
-        return (  torch.tensor(src, dtype=torch.float32, device=self.device),
-                  torch.tensor(dest, dtype=torch.float32, device=self.device),
-                  torch.tensor( [[float(sim.get_similarity())]], dtype=torch.float32, device=self.device)
-               )
+        return (  src, dest, torch.tensor( [float(sim.get_similarity())], dtype=torch.float32, device=self.device))
 
 
     def __len__(self):
