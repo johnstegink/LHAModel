@@ -9,6 +9,7 @@ class DocumentVector:
         """
         self.documentid = documentid
         self.vector = vector
+        self.sections = []
 
     def get_id(self):
         """
@@ -31,3 +32,23 @@ class DocumentVector:
         """
 
         return len( self.vector)
+
+    def add_section(self,  vector):
+        """
+        Add a section to this document vector
+        :param vector:
+        :return:
+        """
+        self.sections.append( vector)
+
+
+    def get_sections(self):
+        """
+        Read all sections
+        :return: a list of tuples with the index of the section and the vector
+        """
+        sections = []
+        for index in range( len(self.sections)):
+            sections.append((index, self.sections[index]))
+
+        return  sections

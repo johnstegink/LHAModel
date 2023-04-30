@@ -1,4 +1,6 @@
 # Class that contains a section from a document
+import re
+
 import functions
 from lxml import etree as ET
 from nltk.tokenize import sent_tokenize
@@ -38,6 +40,18 @@ class Section:
 
         text = self.element.find("text").text
         return text if not text is None else ""
+
+
+    def get_fulltext_in_one_line(self):
+        """
+        Get full text of the section, by getting the title and text in one line
+        :param nr_of_sections:
+        :return:
+        """
+
+        text = self.get_title() + " " + self.get_text()
+        return re.compile(r"\s+").sub( " ", text) + "\n"
+
 
 
     def get_fulltext(self):

@@ -5,19 +5,18 @@ import torch
 import torch.nn as nn
 
 class CorpusDataset( Dataset):
-    def __init__(self, preprocessor, similarities, device):
+    def __init__(self, preprocessor):
         """
         Creates a dataset for the preprocessor
         :param preprocessor:
-        :param similarities: The similarities to be served by this dataset
         """
         self.preprocessor = preprocessor
-        self.device = device
-        self.similarities = similarities
+        self.sims = preprocessor.get_simlist()
 
+        # Preload the tensors
         self.tensors = {}
-        for id in preprocessor.get_all_documentids():
-            self.tensors[id] = preprocessor.create_or_load_embedding(docid=id).to(device)
+        for id in self.preprocessor.get_all_documentids():
+            self.tensors[id] = preprocessor.create_or_load_embedding(docid=id)
 
 
     def __getitem__(self, index):
@@ -27,13 +26,13 @@ class CorpusDataset( Dataset):
         :return: (src, dest, similarity)  where src and dest are numpy arrays
         """
 
-        sim = self.similarities[index]
+        sim = self.sims[index]
 
         # Retrieve the vectors for the source and destination
         src = self.tensors[sim.get_src()]
         dest = self.tensors[sim.get_dest()]
 
-        return (  src, dest, torch.tensor( [float(sim.get_similarity())], dtype=torch.float32, device=self.device))
+        return (  src, dest, torch.tensor( [float(sim.get_similarity())], dtype=torch.float32))
 
 
     def __len__(self):
@@ -42,6 +41,6 @@ class CorpusDataset( Dataset):
         :return:
         """
 
-        return len( self.similarities)
+        return len( self.sims)
 
         

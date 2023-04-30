@@ -18,13 +18,17 @@ class ParagraphEncoder(nn.Module):
 
     def forward(self, Sentences):
         # Apply the bidirectional GRU
-        hidden, _ = self.GRU(Sentences)
+        shapes = Sentences.shape
+        sentences_copy = Sentences.reshape((-1,)+shapes[2:])
+
+        hidden, _ = self.GRU(sentences_copy)
 
         # The attention
         u_p_kj = self.tanh(self.fc(hidden))
         alpha=self.softmax(self.upw(u_p_kj))
 
         # Sum the sentences regarding the alpha for this paragraph
-        p_p_k = torch.sum( alpha*hidden, dim=-2)
+        p_p_k = torch.sum( alpha*hidden, dim=-1)
+        p_p_k_copy = p_p_k.reshape( (shapes[0], shapes[1])) # Put the batch-size back
 
-        return p_p_k
+        return p_p_k_copy

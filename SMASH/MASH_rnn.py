@@ -18,6 +18,6 @@ class MashRNN(nn.Module):
 
 
 
-        # mashRNN = torch.cat([torch.flatten(Sentences),Paragraphs], dim=0)   #(1, 2*1024)
-        mashRNN = Paragraphs
+        mashRNN = torch.cat([torch.sum(Sentences, dim=-1),Paragraphs], dim=0)   #(1, 2*1024)
+        # mashRNN = Paragraphs
         return mashRNN

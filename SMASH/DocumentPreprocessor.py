@@ -23,18 +23,27 @@ class DocumentPreprocessor:
         self.max_tokens = max_tokens
         self.device = device
         self.dim = dim
+        self.debug = debug
 
-        self.max_size = 50 if debug else None
+        self.sims = similarities.get_all_similarities()
+        if self.debug:
+            self.sims = self.sims[:100]
 
         self.documentids = set()  # Contains al documentids
-        for sim in similarities.get_all_similarities():
+        for sim in self.sims:
             self.documentids.add( sim.get_src())
             self.documentids.add( sim.get_dest())
 
-        (self.train, self.test, self.validation) = self.__split_list( similarities)
 
         self.embedder = BertEmbedder(modelname, device)  # Load the model
 
+
+    def get_simlist(self):
+        """
+        Return a list of all similarities
+        :return:
+        """
+        return self.sims
 
     def get_device(self):
         """
@@ -45,30 +54,14 @@ class DocumentPreprocessor:
 
 
 
-    def __split_list(self, similarities):
-        """
-        Split the similarities into a train, test and validation set (60,20,20)
-        :param similarities:
-        :return:
-        """
-
-        sims = similarities.get_all_similarities()
-        if not self.max_size is None:
-            sims = sims[0:self.max_size]
-        test = int(len(sims) * 0.6)
-        val = int(len(sims) * 0.8)
-
-        return sims[:test], sims[test:val], sims[val:]
-
-
-
     def get_all_documentids(self):
         """
         Returns a list of all documentids
         :return:
         """
 
-        return list( self.documentids)
+        docids = list( self.documentids)
+        return docids if not self.debug else docids[:100]
 
 
 
@@ -257,7 +250,7 @@ class DocumentPreprocessor:
 
         file = os.path.join(directory, f"{docid}.pt")
         if os.path.exists( file):
-            return torch.load( file)
+            return torch.load( file).float()
         else:
             doc = self.corpus.getDocument(docid)
             text = self.__read_document( doc)
@@ -267,23 +260,10 @@ class DocumentPreprocessor:
 
             return tensor
 
-    def create_training_dataset(self):
+    def create_dataset(self):
         """
         Create the training set
         :return:
         """
-        return CorpusDataset( self, self.train, self.device)
+        return CorpusDataset( self)
 
-    def create_test_dataset(self):
-        """
-        Create the test set
-        :return:
-        """
-        return CorpusDataset( self, self.test, self.device)
-
-    def create_validation_dataset(self):
-        """
-        Create the validation set
-        :return:
-        """
-        return CorpusDataset(self, self.validation, self.device)

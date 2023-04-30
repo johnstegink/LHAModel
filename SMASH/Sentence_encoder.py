@@ -18,7 +18,9 @@ class SentenceEncoder(nn.Module):
 
     def forward(self, X):
         # Apply the bidirectional GRU
-        hidden, _ = self.GRU( X)
+        shapes = X.shape
+        x_copy = X.reshape((-1,)+shapes[2:])
+        hidden, _ = self.GRU( x_copy)
 
         # The attention
         u_p_kj = self.tanh(self.fc(hidden))
@@ -27,4 +29,5 @@ class SentenceEncoder(nn.Module):
         # Sum the sentences regarding the alpha for this paragraph
         p_p_k = torch.sum( alpha*hidden, dim=-2)
 
-        return p_p_k
+        p_p_k_copy = p_p_k.reshape( (shapes[0], shapes[1],) + p_p_k.shape[1:])
+        return p_p_k_copy

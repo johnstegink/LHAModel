@@ -8,7 +8,7 @@ import sys
 import os
 import functions
 from documentencoders.Sent2VecEncoder import Sent2VecEncoder
-from documentencoders.AvgWord2VecEncoder import AvgWord2VecEncoder
+#from documentencoders.AvgWord2VecEncoder import AvgWord2VecEncoder
 from Distances.DocumentVectors import  DocumentVectors
 from tqdm import *
 
@@ -77,6 +77,13 @@ if __name__ == '__main__':
             if len( text) > 100:
                 vector = encoder.embed_text(document.get_fulltext_in_one_line())
                 documentvectors.add( document.get_id(), vector)
+
+                # Add all sections
+                for section in document:
+                    section_text = section.get_fulltext_in_one_line()
+                    vector = encoder.embed_text( section_text)
+                    documentvectors.add_section( document.get_id(), vector)
+
             progress.update()
 
     functions.show_message("Save vectors")

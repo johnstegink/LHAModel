@@ -20,10 +20,19 @@ class DocumentVectors:
         documentvector = DocumentVector( documentid, vector)
         self.vectors[documentid] = documentvector
 
+    def add_section(self, documentid, vector):
+        """
+        Add a section to the document
+        :param documentid:
+        :param vector:
+        :return:
+        """
+        self.vectors[documentid].add_section( vector)
+
 
     def get_vector_size(self):
         """
-        Read the vector size and check the file if all vectors have the same size
+        Read the vector size and check the file if all document vectors have the same size
         :return:
         """
         size = 0
@@ -53,6 +62,11 @@ class DocumentVectors:
                 ET.SubElement(document, "id").text = vector.get_id()
                 # Comma seperated vector
                 ET.SubElement(document, "vector").text = ",".join([str(value) for value in vectorValue])
+
+                # Add the sections with the index in an attribute
+                sections = ET.SubElement(document, "sections")
+                for (section_index, section_vector) in vector.get_sections():
+                    ET.SubElement(sections, "section", attrib={"index": str(section_index)}).text = ",".join([str(value) for value in section_vector])
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))

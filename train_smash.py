@@ -212,12 +212,12 @@ if __name__ == '__main__':
                                         debug=True,
                                         device=device)
 
-    documentids = sorted( preprocessor.get_all_documentids())
-    for id in tqdm(documentids, desc="Creating embeddings"):
-         preprocessor.create_or_load_embedding(docid=id)
+    # documentids = sorted( preprocessor.get_all_documentids())
+    # for id in tqdm(documentids, desc="Creating embeddings"):
+    #      preprocessor.create_or_load_embedding(docid=id)
 
     trainer = SiameseNetworkTrainer()
-    trainer.train( preprocessor, 3)
+    trainer.train( preprocessor, 30)
 
 
 
