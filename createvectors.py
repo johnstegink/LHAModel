@@ -1,6 +1,7 @@
 # Script to create embeddings from a document, similar to the LHA algorithm (Nikola I. Nikolov and Richard H.R. Hahnloser)
 
 import argparse
+import collections
 
 from texts.corpus import Corpus
 from Distances.DistanceIndex import DistanceIndex
@@ -8,7 +9,7 @@ import sys
 import os
 import functions
 from documentencoders.Sent2VecEncoder import Sent2VecEncoder
-#from documentencoders.AvgWord2VecEncoder import AvgWord2VecEncoder
+from documentencoders.AvgWord2VecEncoder import AvgWord2VecEncoder
 from Distances.DocumentVectors import  DocumentVectors
 from tqdm import *
 
@@ -72,6 +73,7 @@ if __name__ == '__main__':
     functions.show_message("Document vectors")
     documentvectors = DocumentVectors()
     with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:
+        teller = 0
         for document in corpus:
             text = document.get_fulltext_in_one_line()
             if len( text) > 100:
@@ -82,7 +84,8 @@ if __name__ == '__main__':
                 for section in document:
                     section_text = section.get_fulltext_in_one_line()
                     vector = encoder.embed_text( section_text)
-                    documentvectors.add_section( document.get_id(), vector)
+                    if (isinstance(vector, collections.abc.Iterable)):
+                        documentvectors.add_section( document.get_id(), vector)
 
             progress.update()
 

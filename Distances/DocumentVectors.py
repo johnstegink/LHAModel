@@ -152,3 +152,4 @@ class DocumentVectors:
         :return:
         """
         return self.vectors[id]
+
