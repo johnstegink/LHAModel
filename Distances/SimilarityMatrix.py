@@ -42,10 +42,30 @@ class SimilarityMatrix:
                 ids.append(id)
                 vectors.append( vector)
 
-            self.index_to_id.append( indexes)
-            self.id_to_index.append( ids)
+            self.id_to_index.append( indexes)
+            self.index_to_id.append( ids)
             np_vectors.append( np.array( vectors))
 
-        distances = distance.cdist(np_vectors[0], np_vectors[1])
+        distances = distance.cdist(np_vectors[0], np_vectors[1], 'cosine')
         self.similarities = 1 - distances  # Convert the distances to similarities
 
+
+    def get_values(self):
+        """
+        Returns a dictionary with the src as a key and a list of tuples( dest, similarity) as value
+        :return:
+        """
+
+        data = {}
+        for axis in [0,1]:     # axis
+            opposite_axis = (axis + 1) % 2
+
+            for i in range(self.similarities.shape[axis]):
+                srcid = self.index_to_id[axis][i]
+                data[srcid] = []
+                for j in range( self.similarities.shape[opposite_axis]):
+                    dstid = self.index_to_id[opposite_axis][j]
+                    similarity = self.similarities[i][j]
+                    data[srcid].append( (dstid, similarity))
+
+        return data

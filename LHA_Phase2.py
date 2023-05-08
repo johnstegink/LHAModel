@@ -1,6 +1,7 @@
 # Script to create relations the sections
 
 import argparse
+import heapq
 
 import sys
 import os
@@ -11,6 +12,7 @@ import functions
 from Distances.DocumentRelations import DocumentRelations
 from Distances.DocumentVectors import  DocumentVectors
 from Distances.SimilarityMatrix import  SimilarityMatrix
+from Distances.DocumentSectionRelations import  DocumentSectionRelations
 from texts.corpus import Corpus
 
 
@@ -55,14 +57,15 @@ def section_to_dict( sections):
     return [(f"{index + 1:0=3}",vector) for (index, vector) in sections]
 
 
-def determine_NN( src, dest, min_sim, K):
+def determine_NN( relations, src, dest,  min_sim, K):
     """
     Determine the Nearest Neighbours of the sections in src en dest as described in
     "Large-scale Hierarchical Alignment for Data-driven Text Rewriting", Nikola I. Nikolov et al. section 3.2
 
-    :param source documentvector:
-    :param destination documentvector :
-    :param min_sim: Minimial similarity
+    :param relations: the sectionrelations object to add these vectors to
+    :param dest: destination vectors
+    :param src: source vectors
+    :param min_sim: minimal similarity
     :param K: the number of nearest neighbours
     :return:
     """
@@ -71,7 +74,12 @@ def determine_NN( src, dest, min_sim, K):
     dst_sections = section_to_dict(dest.get_sections())
 
     similarity = SimilarityMatrix( src_sections, dst_sections)
-
+    data = similarity.get_values()
+    for src in data.keys():
+        nearest = heapq.nlargest( K, data[src], key=lambda x: x[0])  # Nearest N neighbours
+        filtered = [val for val in nearest if val[1] >= min_sim] # filter on minimal similarity
+        for relation in filtered:
+            relations.add( relation[0], relation[1])
 
 
 
@@ -89,17 +97,20 @@ if __name__ == '__main__':
     corpus = Corpus(directory=corpusdir)
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
+    dsr = DocumentSectionRelations()
     with tqdm(total=dr.count(), desc="Section similarity progess") as progress:
         for relation in dr:
             src = relation.get_src()
             dest = relation.get_dest()
+            sim = relation.get_similarity()
             src_vector = dv.get_documentvector(src)
             dest_vector = dv.get_documentvector(dest)
 
-            NN = determine_NN( src_vector, dest_vector, similarity, K)
+            relations = dsr.add(src, dest, similarity)
+            NN = determine_NN( relations, src_vector, dest_vector, similarity, K)
 
             progress.update()
 
-
+    dsr.save(output)
     functions.show_message("Done")
 

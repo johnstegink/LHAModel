@@ -15,7 +15,7 @@ class DocumentRelations:
         Add a document relation
         :param src: source id
         :param dest: destination id
-        :param similarity: the distance (between 0 and 1)
+        :param similarity: the similarity (between 0 and 1)
         :return:
         """
         relation = DocumentRelation(src, dest, similarity)
