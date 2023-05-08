@@ -73,7 +73,6 @@ if __name__ == '__main__':
     functions.show_message("Document vectors")
     documentvectors = DocumentVectors()
     with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:
-        teller = 0
         for document in corpus:
             text = document.get_fulltext_in_one_line()
             if len( text) > 100:

@@ -33,6 +33,7 @@ class DocumentVector:
 
         return len( self.vector)
 
+
     def add_section(self,  vector):
         """
         Add a section to this document vector

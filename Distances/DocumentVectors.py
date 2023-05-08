@@ -87,6 +87,9 @@ class DocumentVectors:
             if id_filter is None or id_filter.match( id):
                 vector = [float(value) for value in document.find("vector").text.split(",")]
                 dv.add( id, vector)
+                for section in (document.find("sections").findall("section")):
+                    sectionvector = [float(value) for value in section.text.split(",")]
+                    dv.add_section( id, sectionvector)
 
         return dv
 

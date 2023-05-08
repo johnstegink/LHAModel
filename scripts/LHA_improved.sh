@@ -1,2 +1,2 @@
-./create_all_vectors
-./create_all_relations
+scripts/create_all_vectors.sh
+scripts/create_all_relations.sh
