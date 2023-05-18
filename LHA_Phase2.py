@@ -88,10 +88,10 @@ def determine_NN( relations, src, dest,  min_sim, K):
     similarity = SimilarityMatrix( src_sections, dst_sections)
     data = similarity.get_values()
     for id in data.keys():
-        nearest = heapq.nlargest( K, data[id], key=lambda x: x[0])  # Nearest N neighbours
+        nearest = heapq.nlargest( K, data[id], key=lambda x: x[1])  # Nearest N neighbours
         filtered = [val for val in nearest if val[1] >= min_sim] # filter on minimal similarity
         for relation in filtered:
-            relations.add_section( relation[0], id, relation[1])
+            relations.add_section( id, relation[0], relation[1])
 
 
 
@@ -106,7 +106,7 @@ def create_htmls( dsr, corpus,  outputdir):
             dest = corpus.getDocument( dest_rel.get_dest())
             html_output_name = os.path.join( outputdir, f"{src_id}_{dest_rel.get_dest()}.html")
             with open(html_output_name, "w", encoding="utf-8") as htmlfile:
-                htmlfile.write(f"<html>\n<head><meta charset='utf-8' />\n<script src='assets/jquery-3.7.0.min.js'></script><script src='assets/leader-line.min.js'></script>\n")
+                htmlfile.write(f"<!DOCTYPE html>\n<html>\n<head><meta charset='utf-8' />\n<script src='assets/jquery-3.7.0.min.js'></script><script src='assets/leader-line.min.js'></script>\n")
                 htmlfile.write(f"<script src='assets/bootstrap.min.js'></script><script src='assets/preview.js'></script><link rel='stylesheet' href='assets/bootstrap.min.css'></link><link rel='stylesheet' href='assets/preview.css'></link>\n\n")
                 write_relations( htmlfile, "src_", "dest_", dest_rel.get_relations())
                 htmlfile.write(f"</head><body>\n")
@@ -137,7 +137,9 @@ def write_relations( htmlfile, src_id_prefix, dest_id_prefix, relations):
     """
     htmlfile.write("<script type='text/javascript'>\n")
     for relation in relations:
-        htmlfile.write(f"add_relation('{src_id_prefix}{relation.get_src()}', '{dest_id_prefix}{relation.get_dest()}', {relation.get_similarity()});")
+        src =  src_id_prefix + relation.get_src()
+        dest = dest_id_prefix + relation.get_dest()
+        htmlfile.write(f"add_relation('{src}', '{dest}', {relation.get_similarity()});")
     htmlfile.write("</script>\n")
 
 def write_document_html(htmlfile, id_prefix, document):
@@ -190,21 +192,27 @@ if __name__ == '__main__':
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
     dsr = DocumentSectionRelations()
-    # with tqdm(total=dr.count(), desc="Section similarity progess") as progress:
-    teller = 0
-    for relation in dr:
-        src = relation.get_src()
-        dest = relation.get_dest()
-        sim = relation.get_similarity()
-        src_vector = dv.get_documentvector(src)
-        dest_vector = dv.get_documentvector(dest)
 
-        relations = dsr.add(src, dest, sim)
-        NN = determine_NN( relations, src_vector, dest_vector, float(similarity) / 100.0 , K)
-        teller += 1
-        if teller > 100:
-            break
-#            progress.update()
+    debug = True
+    nrofdocuments = 100 if debug else dr.count()
+
+    with tqdm(total=nrofdocuments, desc="Section similarity progess") as progress:
+        cntr = 0
+        for relation in dr:
+            src = relation.get_src()
+            dest = relation.get_dest()
+            sim = relation.get_similarity()
+            src_vector = dv.get_documentvector(src)
+            dest_vector = dv.get_documentvector(dest)
+
+            relations = dsr.add(src, dest, sim)
+            NN = determine_NN( relations, src_vector, dest_vector, float(similarity) / 100.0 , K)
+
+            if cntr >= nrofdocuments:
+                break
+            else:
+                cntr += 1
+                progress.update()
 
     dsr.save(output)
     if not htmldir is None:

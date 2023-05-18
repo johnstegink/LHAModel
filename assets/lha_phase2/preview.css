@@ -6,12 +6,18 @@
     border: 3px solid rgb(255, 255, 255);
 }
 
-.source_selected {
+.activeSection {
+    background-color: #eeeeee;
+    border: 3px solid #eeeeee;
+
+}
+.source_selected, .source_selected.activeSection {
     background-color: rgb(255, 242, 204);
     border: 3px solid rgb(214, 182, 86);
 }
 
-.destination_selected {
+.destination_selected, .destination_selected.activeSection {
     background-color: rgb(218, 232, 252);
     border: 3px solid rgb(108, 142, 191);
 }
+

@@ -19,7 +19,7 @@ class SectionRelations:
 
     def add_section(self, src, dest, similarity):
         """
-        Add a document relation
+        Add a section relation
         :param src: source id of section
         :param dest: destination id of section
         :param similarity: the distance (between 0 and 1)
