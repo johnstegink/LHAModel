@@ -171,5 +171,18 @@ def read_corpus_info(corpusdir):
 
     return (name, language_code)
 
+def copy_dir( src_dir, dest_dir):
+    """
+    Makes a copy from the files in the srcdir to to destdir
+    :param src_dir:
+    :param dest_dir:
+    :return:
+    """
 
+    create_directory_if_not_exists( dest_dir)
+    for file_name in os.listdir(src_dir):
+        source = os.path.join(src_dir, file_name)
+        destination = os.path.join(dest_dir, file_name)
+        if os.path.isfile(source):
+            shutil.copy(source, destination)
 

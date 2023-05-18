@@ -65,7 +65,7 @@ class SimilarityMatrix:
                 data[srcid] = []
                 for j in range( self.similarities.shape[opposite_axis]):
                     dstid = self.index_to_id[opposite_axis][j]
-                    similarity = self.similarities[i][j]
+                    similarity = self.similarities[i][j] if axis == 0 else self.similarities[j][i]
                     data[srcid].append( (dstid, similarity))
 
         return data

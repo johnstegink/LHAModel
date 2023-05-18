@@ -1,0 +1,17 @@
+/* Css file for the preview of the HTML files */
+
+.section {
+    margin-bottom: 50px;
+    padding: 10px;
+    border: 3px solid rgb(255, 255, 255);
+}
+
+.source_selected {
+    background-color: rgb(255, 242, 204);
+    border: 3px solid rgb(214, 182, 86);
+}
+
+.destination_selected {
+    background-color: rgb(218, 232, 252);
+    border: 3px solid rgb(108, 142, 191);
+}

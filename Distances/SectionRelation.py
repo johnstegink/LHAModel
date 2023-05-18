@@ -1,37 +1,35 @@
 # Class to store a relation of sections between two documents
 
 class SectionRelation:
-    def __init__(self, id, similarity):
+    def __init__(self, src, dest, similarity):
         """
         Fill the class with the info
-        :param id: the source section
+        :param src: id of the source section
+        :param dest: id of the destination section
+        :param similarity: the corresponding similarity
         """
-        self.id = id
-        self.srsimilarityc = similarity
-        self.destinations = []
+        self.src = src
+        self.dest = dest
+        self.similarity = similarity
 
-    def get_id(self):
+    def get_dest(self):
+        """
+        Read the destination id
+        :return:
+        """
+        return self.dest
+
+    def get_src(self):
         """
         Read the source id
         :return:
         """
-        return self.id
+        return self.src
 
-    def get_destinations(self):
+    def get_similarity(self):
         """
         :return: a list of tuples (id, similarity) of all destinations
 
         """
-        return self.destinations
-
-
-    def add_destination(self, destination, similarity):
-        """
-        Add this destination to the list of destinations
-        :param destination:
-        :param similarity:
-        :return:
-        """
-        self.destinations.append(( destination, similarity))
-
+        return self.similarity
 

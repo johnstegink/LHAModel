@@ -7,17 +7,17 @@ import html
 import functions
 
 class SectionRelations:
-    def __init__(self, id, similarity):
+    def __init__(self, dest, similarity):
         """
         Relations between sections of src and dest document
         :param dest: id of destination document
         :param id: the similarity between the documents
         """
-        self.relations = SectionRelation(id, similarity)   # Dictionary of relations
-        self.id = id
+        self.relations = []
+        self.dest = dest
         self.similarity = similarity
 
-    def add(self, dest, similarity):
+    def add_section(self, src, dest, similarity):
         """
         Add a document relation
         :param src: source id of section
@@ -26,15 +26,16 @@ class SectionRelations:
         :return:
         """
 
-        self.relations.add_destination( dest, similarity)
+        rel = SectionRelation( src, dest, similarity)
+        self.relations.append( rel)
 
-    def get_id(self):
+    def get_dest(self):
         """
         The id of the destination
         :return:
         """
 
-        return self.id
+        return self.dest
 
 
     def get_similarity(self):
