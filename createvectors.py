@@ -70,7 +70,7 @@ if __name__ == '__main__':
     functions.show_message("Loading encoder")
     encoder = create_encoder( algorithm)
 
-    functions.show_message("Document vectors")
+    functions.show_message("Document and sector vectors")
     documentvectors = DocumentVectors()
     with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:
         for document in corpus:

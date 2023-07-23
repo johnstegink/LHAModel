@@ -15,21 +15,21 @@ cd $CURRENT
 
 # Wikimatch
 PREFIX=wikimatch_nl
-$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
+#$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
 PREFIX=wikimatch_en
-$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
+$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC -r  /Volumes/Extern/Studie/studie/vectors/html
 
 # WikiSim
 PREFIX=WikiSim_nl
-$VENVDIR/python createrelations.py -c $COPRUSDIR/WikiSim/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
+#$VENVDIR/python createrelations.py -c $COPRUSDIR/WikiSim/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
 PREFIX=WikiSim_en
-$VENVDIR/python createrelations.py -c $COPRUSDIR/WikiSim/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
+#$VENVDIR/python createrelations.py -c $COPRUSDIR/WikiSim/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
 
 # WiRe
 PREFIX=WiRe_nl
-$VENVDIR/python createrelations.py -c $COPRUSDIR/WiRe/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
+#$VENVDIR/python createrelations.py -c $COPRUSDIR/WiRe/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
 PREFIX=WiRe_en
-$VENVDIR/python createrelations.py -c $COPRUSDIR/WiRe/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
+#$VENVDIR/python createrelations.py -c $COPRUSDIR/WiRe/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
 
 # S2ORC
 #PREFIX=S2ORC

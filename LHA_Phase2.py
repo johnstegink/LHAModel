@@ -24,7 +24,7 @@ def read_arguments():
     :return:
     """
 
-    parser = argparse.ArgumentParser(description='Create document relations between the sections using the files created with "createvectors.py" and "createrelations.py"')
+    parser = argparse.ArgumentParser(description='Creates relations between the sections in documents using the files created with "createvectors.py" and "createrelations.py"')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
     parser.add_argument('-i', '--documentvectorfile', help='The xml file containing the documentvectors', required=True)
     parser.add_argument('-r', '--relationsfiles', help='The xml file containing the relations between the documents', required=True)
