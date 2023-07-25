@@ -159,6 +159,14 @@ if __name__ == '__main__':
         total = numpy.add( total, vals)
     total = list( total)
 
+    # print a table of values with the cut-of (LaTeX)
+    for i in range(4, max):
+        percentage =  float( sum( total[i+1:])) / float( sum(total[0:i]))
+        percentage = int(round(percentage * 100.0,0))
+        if percentage > 0:
+            print( f"{i} & {percentage}\\% \\\\ \\hline")
+
+
     title = f"Number of sections per document for the corpora {corpora_names}."
     create_histogram( total, max, histogram_image, title)
 
