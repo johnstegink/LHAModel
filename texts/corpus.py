@@ -2,6 +2,7 @@
 import random
 
 import functions
+from Distances.DocumentRelations import DocumentRelations
 from texts.document import Document
 from texts.similarities import Similarities
 from pathlib import Path
@@ -173,3 +174,15 @@ class Corpus:
                 existsing.add(f"{src}#{dest}")
                 sims.add( src, dest, 0)
 
+
+    def read_document_pairs(self):
+        """
+        returns the document pairs of the corpus that have manually been annotated
+        :return: Documentrelations object
+        """
+
+        dv = DocumentRelations()
+        for pair in functions.read_article_pairs( self.directory):
+            dv.add( pair[0], pair[1], pair[2])
+
+        return dv

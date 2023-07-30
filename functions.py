@@ -171,6 +171,37 @@ def read_corpus_info(corpusdir):
 
     return (name, language_code)
 
+def write_article_pairs( corpusdir, info):
+    """
+    Write a .tsv with articlepairs to the corpus, the file is name pairs.tsv
+    :param corpusdir: Directory containing the corpus
+    :param info: list of tuples (id1, id2, similarity) where similarity is 0 or 1
+    :return:
+    """
+
+    file = open(os.path.join(corpusdir, "pairs.tsv"), mode="w", encoding="utf-8-sig")
+    for record in info:
+        file.write(f"{record[0]}\t{record[1]}\t{record[2]}\n")
+    file.close()
+
+def read_article_pairs( corpusdir):
+    """
+    Read a .tsv with articlepairs to the corpus, created by write_article_pairs
+    :param corpusdir: Directory containing the corpus
+    :return: list of tuples (id1, id2, similarity) where similarity is 0 or 1
+    """
+
+    file = open(os.path.join(corpusdir, "pairs.tsv"), mode="r", encoding="utf-8-sig")
+    lines = file.readlines();
+    file.close()
+
+    info = []
+    for line in lines:
+        record = line.split("\t")
+        info.append( (record[0], record[1], float(record[2])))
+
+    return info
+
 def copy_dir( src_dir, dest_dir):
     """
     Makes a copy from the files in the srcdir to to destdir

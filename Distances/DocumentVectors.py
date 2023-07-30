@@ -156,3 +156,11 @@ class DocumentVectors:
         """
         return self.vectors[id]
 
+    def documentvector_exists(self, id):
+        """
+        Determines wheather a document vector with this Id exists
+        :param id:
+        :return:
+        """
+
+        return id in self.vectors
