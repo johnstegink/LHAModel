@@ -1,8 +1,22 @@
-import argparse
-import os
-import numpy
-import time
+# Train the model for phase 3
 
+import argparse
+import math
+import os
+
+import numpy as np
+import torch
+from numpy.random import multivariate_normal
+from torch.utils.data import Dataset, DataLoader
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from tqdm import tqdm
+
+import functions
+from network.SectionDataset import SectionDataset
 from texts.corpus import Corpus
 
 
@@ -12,160 +26,137 @@ def read_arguments():
     :return:
     """
 
-    parser = argparse.ArgumentParser(description='Trains the model')
-    parser.add_argument('-c', '--corpus', help='The corpus to train on', required=True)
-    parser.add_argument('-m', '--max', help='The maximum number of sections per document', required=True, type=int)
-    parser.add_argument('-i', '--histogramimage', help='The filename to which the histogram will be written', required=True)
+    parser = argparse.ArgumentParser(description='Create a histogram containing the count of the sections per corpus')
+    parser.add_argument('-N', '--sections', help='The number of sections to consider', required=True, type=int)
+    parser.add_argument('-c', '--corpus_dir', help='The directory of the corpus to train on', required=True)
+    parser.add_argument('-s', '--cache_dir', help='The directory used for caching', required=True)
+    parser.add_argument('-v', '--vectors_dir', help='The directory containing the document and section vectors of this corpus', required=True)
+    parser.add_argument('-m', '--heatmap_dir', help='The directory containing the images with the heatmaps', required=True)
+    parser.add_argument('-t', '--transformation', help='The transformation to apply to sections with an index larger than N', required=True, choices=['truncate', 'avg'])
 
     args = vars(parser.parse_args())
 
-    return ( args["corpusdir"], args["max"], args["histogramimage"])
+    os.makedirs( args["cache_dir"], exist_ok=True)
+    if os.path.exists( args["heatmap_dir"]):
+        functions.remove_redirectory_recursivly(args["heatmap_dir"])
+
+    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"])
 
 
-def create_DOT( graph, word, max, prefix):
-    counter = 0
-    prolog = ""
-    dot = ""
-    node = f"{prefix}_0"
-    prolog += f'{node}[label="{word}"]\n'
-    nbs = graph.neighbors( word)
-    for i in range(0, min(max, len(nbs))):
-        nb = f"{prefix}_{i+1}"
-        prolog += f'{nb}[label="{nbs[i]}"]\n'
-        dot += f'{node} -> {nb}\n'
+class NeuralNetwork(nn.Module):
+    def __init__(self, N):
+        super(NeuralNetwork, self).__init__()
 
-    print(prolog + "\n\n\n")
-    print(dot + "\n------------------------\n\n\n")
+        self.hidden1 = nn.Linear(N*(N+1), N*(N+1))
+        self.act1 = nn.ReLU()
+        self.hidden2 = nn.Linear(N*(N+1), 5)
+        self.act2 = nn.ReLU()
+        self.output = nn.Linear(5, 1)
+        self.act_output = nn.Sigmoid()
+    def forward(self, x):
+        x1 = self.act1(self.hidden1(x))
+        x2 = self.act2(self.hidden2(x1))
+        x_out = self.act_output(self.output(x2))
 
-def read_subdirs( dir):
+        return x_out.flatten()
+
+def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
     """
-    Reads all subdirectories from the directory
-    :param dir: the root directory
-    :return: a list of subdirectories
-    """
-
-    folders = []
-    for entry in os.listdir(dir):
-        fullpath = os.path.join(dir, entry)
-        if os.path.isdir( fullpath):
-            folders.append( fullpath)
-
-    return folders
-
-
-def count( corpus, max):
-    """
-    Counts the number of sections per document in a corpus
-    :param corpus: The corpus to be counted
-    :return: an array containing the nr of documents per count i.e.
-             [0,2,5] means 0 documents have 0 sections, 2 documents with 1 section and 5 documents with 3 sections
-
-    """
-
-    counts = [0] * (max + 1)
-    for document in corpus:
-        nr_of_sections = 0
-        for section in document.sections:
-            nr_of_sections += 1
-
-        # Cannot be above the max
-        if nr_of_sections >= max:
-            nr_of_sections = max
-
-        # Make sure the array is large enough
-        counts[nr_of_sections] += 1
-
-    return counts
-
-def create_histogram(data, max, histogram_image, title):
-    """
-    Create a histogram of the data
-    :param data:
-    :param max:
-    :param histogram_image:
+    Create a single heatmap
+    :param X:
     :param title:
+    :param heatmap_dir:
+    :param filename:
+    :param predicted:
+    :param actual:
     :return:
     """
+    n = int( math.sqrt (len(X)))
+    matrix = X.reshape( n, n + 1)[:,:(n-1)]
+    inverted = 1 - matrix
+    plt.pcolormesh( inverted, cmap="hot")
+    plt.title( title)
 
-    graphcolors = {
-        "main": "rgb(255, 126, 132)",
-        "sub1":  "rgb(129, 0, 0)",
-        "sub2":  "rgb(93, 138, 216)",
-        "background": "rgb(240, 238, 238)"
-    }
+    dir = os.path.join( heatmap_dir, f"{predicted} - {actual}")
+    os.makedirs( dir, exist_ok=True)
 
-
-    histogram_xs = [x for x in range(0, max + 1)]
-    histogram_ys = data
-    histogram = go.Figure(data=[go.Bar(
-        name=title,
-        x=histogram_xs,
-        y=histogram_ys,
-        marker_color=graphcolors["main"]
-    ),
-    ])
-    histogram.update_layout(
-        {"xaxis": {
-            "title": "Number of sections per document"
-        },
-        "yaxis": {
-            "title": "Number of occurences"
-        }
-    })
+    plt.savefig( os.path.join(dir ,filename))
 
 
-    # Workaround to remove error message from pdf
-    fig = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
-    fig.write_image(histogram_image, format="pdf")
-    time.sleep(2)
 
-    histogram.show()
-
-    histogram.write_image(histogram_image)
 
 
 ## Main part
 if __name__ == '__main__':
-    (corpusdir, max, histogram_image) = read_arguments()
+    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir) = read_arguments()
 
-    # List all corpora in the given directory
-    corpusdirs = sorted(read_subdirs(corpusdir), key=str.casefold)
-    counts = {}
+    # if torch.backends.mps.is_available():
+    #     device = torch.device("mps")
+    # else:
+    device = torch.device("cpu")
 
-    # debugging is faster
-    # corpusdirs.pop(0)
-    # corpusdirs.pop(0)
+    cache_file = os.path.join( cache_dir, f"dataset_{N}.pkl")
+    train_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='train', documentvectors_dir=vectors_dir, transformation=transformation, cache_file=cache_file)
+    validation_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='validation', documentvectors_dir=vectors_dir, transformation=transformation, cache_file=cache_file)
 
+    # parameters
+    batch_size = 32
+    n_epochs = 100
+    learning_rate = 0.001
 
-    corpora_names = ""
-    for i in range(0, len(corpusdirs)):
-        corpus = Corpus(directory=corpusdirs[i])
-        name = corpus.get_name()
-        print(f"Counting sections in {name} ...")
-        counts[name] = count( corpus, max)
-
-        if i == len( corpusdirs) - 1:
-            corpora_names += " and "
-        elif i > 0:
-            corpora_names += ", "
-        corpora_names += name
+    train_dl = DataLoader( train_ds, batch_size=batch_size, shuffle=True)
+    validation_dl = DataLoader( validation_ds, batch_size=batch_size, shuffle=False)
 
 
-    # Sum all counts in one list
-    total = [0] * (max + 1)
-    for vals in counts.values():
-        total = numpy.add( total, vals)
-    total = list( total)
-
-    # print a table of values with the cut-of (LaTeX)
-    for i in range(4, max):
-        percentage =  float( sum( total[i+1:])) / float( sum(total[0:i]))
-        percentage = int(round(percentage * 100.0,0))
-        if percentage > 0:
-            print( f"{i} & {percentage}\\% \\\\ \\hline")
+    # Define the model
+    model = NeuralNetwork( N)
+    model.to( device)
+    loss_fn = nn.BCELoss()  # binary cross entropy
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 
-    title = f"Number of sections per document for the corpora {corpora_names}."
-    create_histogram( total, max, histogram_image, title)
+    # Train the model
+    for epoch in range(n_epochs):
+        for batch in train_dl:
+            (X, Y) = batch
 
-    print( title)
+            y_pred = model(X)
+            loss = loss_fn(y_pred, Y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        print(f'Finished epoch {epoch}, latest loss {loss}')
+
+
+    # Evaluate the model
+    correct = 0
+    total = len(validation_ds)
+    nr_of_images = 10
+    with tqdm(total=nr_of_images, desc="Creating heatmaps") as progress:
+        for i in range(0, total):
+
+            (X, Y) = validation_ds[i]
+            prediction = 1 if model(X) >= 0.5 else 0
+
+            if int(prediction) == int(Y):
+                correct += 1
+
+            if nr_of_images > 0:
+                equal = int(Y)
+                title = validation_ds.get_title(i) + " "
+                title += "(Equal)" if equal else "(NOT equal)"
+
+                filename = validation_ds.get_pair(i) + ".png"
+                make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
+
+                nr_of_images -= 1
+                progress.update()
+
+
+
+
+    # Print the accuracy
+    print( correct)
+    print( total)
+    accuracy = int((correct / total) * 100)
+    print(f"Accuracy: {accuracy}%")
