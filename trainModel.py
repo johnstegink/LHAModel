@@ -103,6 +103,8 @@ if __name__ == '__main__':
     batch_size = 32
     n_epochs = 100
     learning_rate = 0.001
+    nr_of_heatmaps = 100
+
 
     train_dl = DataLoader( train_ds, batch_size=batch_size, shuffle=True)
     validation_dl = DataLoader( validation_ds, batch_size=batch_size, shuffle=False)
@@ -131,8 +133,7 @@ if __name__ == '__main__':
     # Evaluate the model
     correct = 0
     total = len(validation_ds)
-    nr_of_images = 10
-    with tqdm(total=nr_of_images, desc="Creating heatmaps") as progress:
+    with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
         for i in range(0, total):
 
             (X, Y) = validation_ds[i]
@@ -141,7 +142,7 @@ if __name__ == '__main__':
             if int(prediction) == int(Y):
                 correct += 1
 
-            if nr_of_images > 0:
+            if nr_of_heatmaps > 0:
                 equal = int(Y)
                 title = validation_ds.get_title(i) + " "
                 title += "(Equal)" if equal else "(NOT equal)"
@@ -149,7 +150,7 @@ if __name__ == '__main__':
                 filename = validation_ds.get_pair(i) + ".png"
                 make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
 
-                nr_of_images -= 1
+                nr_of_heatmaps -= 1
                 progress.update()
 
 
