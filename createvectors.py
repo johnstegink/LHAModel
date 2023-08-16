@@ -26,7 +26,7 @@ def read_arguments():
 
     parser = argparse.ArgumentParser(description='Create document embeddings.')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
-    parser.add_argument('-a', '--algorithm', help='The embedding algorithm (default "sent2vec")', choices=["word2vec", "sent2vec", "sbert"], default="sent2vec")
+    parser.add_argument('-a', '--algorithm', help='The embedding algorithm (default "sent2vec")', choices=["word2vec", "sent2vec", "sbert", "use"], default="sent2vec")
     parser.add_argument('-o', '--output', help='Output file for the xml file with the documentvectors', required=True)
     args = vars(parser.parse_args())
 
@@ -52,7 +52,9 @@ def create_encoder( algorithm):
     if algorithm == "sent2vec":
         encoder = Sent2VecEncoder(corpus.get_language_code())
     elif algorithm == "sbert":
-        encoder =SBertEcoder(corpus.get_language_code())
+        encoder = SBertEcoder(corpus.get_language_code())
+    elif algorithm == "use":
+        encoder = SBertEcoder(corpus.get_language_code())
     elif algorithm == "word2vec":
         encoder = AvgWord2VecEncoder(corpus.get_language_code())
     else:

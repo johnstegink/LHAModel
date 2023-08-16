@@ -1,5 +1,9 @@
-# Class for the Sentence Bert encoder
-import os
+# Class for the Universal Sentence Encoder
+
+import tensorflow as tf
+import tensorflow_hub as hub
+import numpy as np
+from absl import logging
 
 from sentence_transformers import SentenceTransformer
 from texts.clean import Cleaner
@@ -7,17 +11,18 @@ from texts.clean import Cleaner
 from documentencoders.documentencoder import Documentencoder_base
 
 
-class SBertEcoder(Documentencoder_base):
+class USEEcoder(Documentencoder_base):
+    module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
+    print("module %s loaded" % module_url)
 
-    SBERTODELPATH = "sentence-transformers/all-mpnet-base-v2"
-    SBERTVECTORSIZE = 768
+    USEVECTORSIZE = 512
     # SBERTODELPATH = "sentence-transformers/all-MiniLM-L12-v2"
     # SBERTVECTORSIZE = 384
 
     def __init__(self, language_code):
-        super(SBertEcoder, self).__init__(language_code)
+        super(USEEcoder, self).__init__(language_code)
 
-        self.model = SentenceTransformer(SBertEcoder.SBERTODELPATH)
+        self.model =  hub.load(self.module_url)
         self.cleaner = Cleaner(language_code=self.language_code)
 
     def get_vector_size(self):
@@ -25,7 +30,7 @@ class SBertEcoder(Documentencoder_base):
         The resulting vector size
         :return:
         """
-        return SBertEcoder.SBERTVECTORSIZE      # This is because the Pretrained model has a fixed vector size
+        return USEEcoder.USEVECTORSIZE      # This is because the Pretrained model has a fixed vector size
 
 
     def embed_text(self, text):
@@ -34,9 +39,9 @@ class SBertEcoder(Documentencoder_base):
         :param text: can either be a string or a list of strings (sentences)
         :return:
         """
-
+        # Reduce logging output.
+        logging.set_verbosity(logging.ERROR)
         joined = " ".join( text) if type(text) == list else text
-        clean = self.cleaner.clean_text(txt=joined, remove_stop=True, remove_digits=True, lower=False)
-        vector = self.model.encode( text)
+        vector = self.model.embed( joined)
 
         return vector            # return the vector

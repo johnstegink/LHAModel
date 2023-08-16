@@ -7,17 +7,19 @@ from texts.corpus import Corpus
 from Distances.DocumentVectors import  DocumentVectors
 from scipy.spatial import distance
 import os
+import numpy as np
 from statistics import mean
 
 class SectionDataset:
 
-    def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, transformation, cache_file):
+    def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, withmask, transformation, cache_file):
         """
         Set variables and read or create the graph
         :param N: the maximum number of sections i.e. the size of the vector will be NxN
         :param device: the device to put the tensors on
         :param corpus_dir: the directory with the corpus containing the document pairs
         :param dataset: can either be 'train' or 'validation'
+        :param withmask: add a mask to the vector
         :param documentvectors_dir: the directory containing the documentvectors
         :param transformation: can either be 'truncate' or 'avg'
                                - truncate: elements having index > (N-1) are discarded
@@ -27,6 +29,7 @@ class SectionDataset:
 
         self.N = N
         self.device = device
+        self.withmask = withmask
         if transformation.lower() == 'truncate':
             self.transformation = self.__truncate_transformation
         elif transformation.lower() == 'avg':
@@ -92,7 +95,12 @@ class SectionDataset:
                 sim_matrix = 1 - distances
 
                 vector = self.__matrix_to_vector( sim_matrix)
+                if self.withmask:
+                    mask = np.zeros(len(vector), dtype=float)
+                    mask[np.array(vector) != 0.0] = 1
+                    vector += list(mask)
                 rows.append( vector)
+
 
                 labels.append( pair.get_similarity() )
 
@@ -135,7 +143,6 @@ class SectionDataset:
         rows = []
         column_count = sim_matrix.shape[1]
         row_count = sim_matrix.shape[0]
-        ratio = column_count / row_count if column_count < row_count else row_count / column_count
 
         for row in sim_matrix:
             if column_count == self.N:
@@ -145,7 +152,6 @@ class SectionDataset:
             else:
                 nw_vector = self.transformation( list( row))
 
-            nw_vector.append( ratio)  # add the ratio in the last column
             rows.append(nw_vector)
 
         list_of_zeros = [0] * (self.N + 1)

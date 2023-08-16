@@ -85,11 +85,13 @@ class DocumentVectors:
         for document in root:
             id = document.find("id").text
             if id_filter is None or id_filter.match( id):
-                vector = [float(value) for value in document.find("vector").text.split(",")]
-                dv.add( id, vector)
-                for section in (document.find("sections").findall("section")):
-                    sectionvector = [float(value) for value in section.text.split(",")]
-                    dv.add_section( id, sectionvector)
+                if not document.find("vector").text is None:
+                    vector = [float(value) for value in document.find("vector").text.split(",")]
+                    dv.add( id, vector)
+                    for section in (document.find("sections").findall("section")):
+                        if not section.text is None:
+                            sectionvector = [float(value) for value in section.text.split(",")]
+                            dv.add_section( id, sectionvector)
 
         return dv
 
@@ -104,7 +106,7 @@ class DocumentVectors:
         for vector in self.vectors.values():
             np_dict[vector.documentid] = np.array(vector.vector, dtype=np.float32)
 
-        return np_dict;
+        return np_dict
 
     def get_index_and_matrix(self):
         """

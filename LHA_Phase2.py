@@ -36,7 +36,6 @@ def read_arguments():
 
     # Create the output directory if it doesn't exist
     outputdir = os.path.dirname(args["output"])
-    os.makedirs( outputdir, exist_ok=True)
 
     corpusdir = args["corpusdirectory"] if "corpusdirectory" in args else None
     if corpusdir is not None and len( functions.read_all_files_from_directory(corpusdir , "xml")) == 0:
@@ -216,6 +215,7 @@ if __name__ == '__main__':
 
     dsr.save(output)
     if not htmldir is None:
+        print("creating html...")
         create_htmls( dsr, corpus, htmldir)
 
     functions.show_message("Done")

@@ -14,9 +14,9 @@ cd $CURRENT
 
 
 # Wikimatch
-PREFIX=wikimatch_nl
+PREFIX=gwikimatch_nl
 #$VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/nl -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
-PREFIX=wikimatch_en
+PREFIX=gwikimatch_en
 $VENVDIR/python createrelations.py -c $COPRUSDIR/wikimatch/en -i $VECTORDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
 
 # WikiSim

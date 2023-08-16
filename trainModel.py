@@ -29,6 +29,7 @@ def read_arguments():
     parser = argparse.ArgumentParser(description='Create a histogram containing the count of the sections per corpus')
     parser.add_argument('-N', '--sections', help='The number of sections to consider', required=True, type=int)
     parser.add_argument('-c', '--corpus_dir', help='The directory of the corpus to train on', required=True)
+    parser.add_argument('-nn', '--neuralnetworktype', help='The type of neural network', required=True, choices=["plain", "masked", "lstm", "stat"])
     parser.add_argument('-s', '--cache_dir', help='The directory used for caching', required=True)
     parser.add_argument('-v', '--vectors_dir', help='The directory containing the document and section vectors of this corpus', required=True)
     parser.add_argument('-m', '--heatmap_dir', help='The directory containing the images with the heatmaps', required=True)
@@ -40,14 +41,17 @@ def read_arguments():
     if os.path.exists( args["heatmap_dir"]):
         functions.remove_redirectory_recursivly(args["heatmap_dir"])
 
-    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"])
+    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"], args["neuralnetworktype"].lower())
 
-
-class NeuralNetwork(nn.Module):
+class NeuralNetworkPlain(nn.Module):
+    """
+    Basic neural network, without masks
+    """
     def __init__(self, N):
-        super(NeuralNetwork, self).__init__()
+        super(NeuralNetworkPlain, self).__init__()
 
         self.hidden1 = nn.Linear(N*(N+1), N*(N+1))
+        self.dropout = nn.Dropout( 0.2)
         self.act1 = nn.ReLU()
         self.hidden2 = nn.Linear(N*(N+1), 5)
         self.act2 = nn.ReLU()
@@ -55,6 +59,32 @@ class NeuralNetwork(nn.Module):
         self.act_output = nn.Sigmoid()
     def forward(self, x):
         x1 = self.act1(self.hidden1(x))
+        # do = self.dropout( x1)
+        # x2 = self.act2(self.hidden2(do))
+        x2 = self.act2(self.hidden2(x1))
+        x_out = self.act_output(self.output(x2))
+
+        return x_out.flatten()
+
+class NeuralNetworkMask(nn.Module):
+    """
+    Basic neural network, with mask added
+    """
+    def __init__(self, N):
+        super(NeuralNetworkMask, self).__init__()
+        vector_len = 2*N*N
+
+        self.hidden1 = nn.Linear(vector_len, vector_len)
+        self.dropout = nn.Dropout( 0.2)
+        self.act1 = nn.ReLU()
+        self.hidden2 = nn.Linear(vector_len, 5)
+        self.act2 = nn.ReLU()
+        self.output = nn.Linear(5, 1)
+        self.act_output = nn.Sigmoid()
+    def forward(self, x):
+        x1 = self.act1(self.hidden1(x))
+        # do = self.dropout( x1)
+        # x2 = self.act2(self.hidden2(do))
         x2 = self.act2(self.hidden2(x1))
         x_out = self.act_output(self.output(x2))
 
@@ -88,20 +118,19 @@ def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
 
 ## Main part
 if __name__ == '__main__':
-    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir) = read_arguments()
+    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype) = read_arguments()
 
-    # if torch.backends.mps.is_available():
-    #     device = torch.device("mps")
-    # else:
     device = torch.device("cpu")
 
-    cache_file = os.path.join( cache_dir, f"dataset_{N}.pkl")
-    train_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='train', documentvectors_dir=vectors_dir, transformation=transformation, cache_file=cache_file)
-    validation_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='validation', documentvectors_dir=vectors_dir, transformation=transformation, cache_file=cache_file)
+    withmask = (nntype == "masked")
+
+    cache_file = os.path.join( cache_dir, f"dataset_{N}_{nntype}.pkl")
+    train_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='train', documentvectors_dir=vectors_dir, transformation=transformation, withmask=withmask, cache_file=cache_file)
+    validation_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='validation', documentvectors_dir=vectors_dir, transformation=transformation, withmask=False, cache_file=cache_file)
 
     # parameters
     batch_size = 32
-    n_epochs = 100
+    n_epochs = 50
     learning_rate = 0.001
     nr_of_heatmaps = 100
 
@@ -111,12 +140,19 @@ if __name__ == '__main__':
 
 
     # Define the model
-    model = NeuralNetwork( N)
+    if nntype == "plain":
+        model = NeuralNetworkPlain( N)
+    elif nntype == "masked":
+        model = NeuralNetworkMask( N)
+    else:
+        raise f"Unknown neural network type: {nntype}"
+
+
     model.to( device)
     loss_fn = nn.BCELoss()  # binary cross entropy
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-
+    losses = []
     # Train the model
     for epoch in range(n_epochs):
         for batch in train_dl:
@@ -127,11 +163,21 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+        losses.append(float(loss))
         print(f'Finished epoch {epoch}, latest loss {loss}')
 
+    # Plot the loss graph.
+    plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.show()
 
     # Evaluate the model
-    correct = 0
+    correct = 0.0
+    fp = 0.0
+    tp = 0.0
+    fn = 0.0
     total = len(validation_ds)
     with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
         for i in range(0, total):
@@ -139,8 +185,17 @@ if __name__ == '__main__':
             (X, Y) = validation_ds[i]
             prediction = 1 if model(X) >= 0.5 else 0
 
+            if prediction == 0 and int(Y) == 1:
+                fp += 1.0
+
+            elif prediction == 1 and int(Y) == 1:
+                tp += 1.0
+
+            elif prediction == 0 and int(Y) == 1:
+                fn += 1.0
+
             if int(prediction) == int(Y):
-                correct += 1
+                correct += 1.0
 
             if nr_of_heatmaps > 0:
                 equal = int(Y)
@@ -157,7 +212,10 @@ if __name__ == '__main__':
 
 
     # Print the accuracy
-    print( correct)
-    print( total)
+    recall = tp / (tp + fn)
+    precision = tp / (tp + fp)
+    F1 = (2 * recall * precision) / (recall + precision)
     accuracy = int((correct / total) * 100)
-    print(f"Accuracy: {accuracy}%")
+    print(f"Accuracy: {accuracy}%\ntp: {tp}, \nfp:{fp}\nF1:{F1}\nPrecision: {precision}\nRecall: {recall}")
+    print(f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\{fn}")
+
