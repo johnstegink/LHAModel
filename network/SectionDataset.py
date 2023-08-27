@@ -13,7 +13,7 @@ from statistics import mean
 
 class SectionDataset:
 
-    def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, nntype, transformation, stat_threshold, cache_file):
+    def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, nntype, transformation, cache_file):
         """
         Set variables and read or create the graph
         :param N: the maximum number of sections i.e. the size of the vector will be NxN
@@ -21,7 +21,6 @@ class SectionDataset:
         :param corpus_dir: the directory with the corpus containing the document pairs
         :param dataset: can either be 'train' or 'validation'
         :param nntype: is a choice from the list ["plain", "masked", "lstm", "stat"]
-        :param stat_threshold: in case of statictisc it uses this threshold to determine weather a pair is a match
         :param documentvectors_dir: the directory containing the documentvectors
         :param transformation: can either be 'truncate' or 'avg'
                                - truncate: elements having index > (N-1) are discarded
@@ -146,22 +145,13 @@ class SectionDataset:
         :param sim_matrix:
         :return:
         """
-        if self.NNType == "stat":
-            matching = np.copy( sim_matrix)
-            matching[matching < self.threshold] = 0
-        else:
-            matrix = np.zeros((self.N, self.N), float)
-            for row in range(0, min( sim_matrix.shape[0], self.N)):
-                for column in range(0, min(sim_matrix.shape[1], self.N)):
-                    matrix[row,column] = sim_matrix[row,column]
+        matrix = np.zeros((self.N, self.N), float)
+        for row in range(0, min( sim_matrix.shape[0], self.N)):
+            for column in range(0, min(sim_matrix.shape[1], self.N)):
+                matrix[row,column] = sim_matrix[row,column]
 
-            # Flatten into a vector
-            return matrix.flatten()
-
-
-    def __stat_get_average(self, sim_matrix):
-        matching = sim_matrix.
-
+        # Flatten into a vector
+        return matrix.flatten()
 
     def __truncate_transformation(self, matrix_row):
         """
