@@ -1,6 +1,7 @@
 # Class implements a dataloader for corpus files. It uses a cache for the distance matrix
 import pickle
 import torch
+import torch.nn.functional as torchF
 import math
 
 from texts.corpus import Corpus
@@ -12,14 +13,15 @@ from statistics import mean
 
 class SectionDataset:
 
-    def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, withmask, transformation, cache_file):
+    def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, nntype, transformation, stat_threshold, cache_file):
         """
         Set variables and read or create the graph
         :param N: the maximum number of sections i.e. the size of the vector will be NxN
         :param device: the device to put the tensors on
         :param corpus_dir: the directory with the corpus containing the document pairs
         :param dataset: can either be 'train' or 'validation'
-        :param withmask: add a mask to the vector
+        :param nntype: is a choice from the list ["plain", "masked", "lstm", "stat"]
+        :param stat_threshold: in case of statictisc it uses this threshold to determine weather a pair is a match
         :param documentvectors_dir: the directory containing the documentvectors
         :param transformation: can either be 'truncate' or 'avg'
                                - truncate: elements having index > (N-1) are discarded
@@ -27,9 +29,12 @@ class SectionDataset:
         :param cache_file: The cachefile containing a cached version of the similarity graph
         """
 
+
+
         self.N = N
+        self.NNType = nntype
         self.device = device
-        self.withmask = withmask
+        self.withmask = nntype == "masked"
         if transformation.lower() == 'truncate':
             self.transformation = self.__truncate_transformation
         elif transformation.lower() == 'avg':
@@ -96,10 +101,12 @@ class SectionDataset:
 
                 vector = self.__matrix_to_vector( sim_matrix)
                 if self.withmask:
-                    mask = np.zeros(len(vector), dtype=float)
-                    mask[np.array(vector) != 0.0] = 1
+                    mask = np.zeros(vector.shape[0], dtype=float)
+                    mask[vector != 0.0] = 1
                     vector += list(mask)
-                rows.append( vector)
+                    rows.append(list(vector) + list(mask))
+                else:
+                    rows.append( list( vector))
 
 
                 labels.append( pair.get_similarity() )
@@ -139,38 +146,21 @@ class SectionDataset:
         :param sim_matrix:
         :return:
         """
-
-        rows = []
-        column_count = sim_matrix.shape[1]
-        row_count = sim_matrix.shape[0]
-
-        for row in sim_matrix:
-            if column_count == self.N:
-                nw_vector = list( row)
-            elif column_count < self.N:
-                nw_vector = list(row) + ([0] * (self.N - column_count))
-            else:
-                nw_vector = self.transformation( list( row))
-
-            rows.append(nw_vector)
-
-        list_of_zeros = [0] * (self.N + 1)
-        # now make sure we have only N vectors
-        if len(rows) == self.N:
-            vectors = rows
-        elif len(rows) <= self.N:
-            vectors = rows
-            for i in range( len(rows), self.N):
-                vectors.append( list_of_zeros)
+        if self.NNType == "stat":
+            matching = np.copy( sim_matrix)
+            matching[matching < self.threshold] = 0
         else:
-            vectors = rows[0:self.N]
+            matrix = np.zeros((self.N, self.N), float)
+            for row in range(0, min( sim_matrix.shape[0], self.N)):
+                for column in range(0, min(sim_matrix.shape[1], self.N)):
+                    matrix[row,column] = sim_matrix[row,column]
 
-        # Flatten into a vector
-        vector = []
-        for vec in vectors:
-            vector += vec
+            # Flatten into a vector
+            return matrix.flatten()
 
-        return vector
+
+    def __stat_get_average(self, sim_matrix):
+        matching = sim_matrix.
 
 
     def __truncate_transformation(self, matrix_row):

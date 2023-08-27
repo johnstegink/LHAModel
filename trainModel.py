@@ -74,18 +74,18 @@ class NeuralNetworkMask(nn.Module):
         super(NeuralNetworkMask, self).__init__()
         vector_len = 2*N*N
 
-        self.hidden1 = nn.Linear(vector_len, vector_len)
+        self.hidden1 = nn.Linear(vector_len, int( vector_len / 2))
         self.dropout = nn.Dropout( 0.2)
         self.act1 = nn.ReLU()
-        self.hidden2 = nn.Linear(vector_len, 5)
+        self.hidden2 = nn.Linear(int( vector_len / 2), int( vector_len / 10))
         self.act2 = nn.ReLU()
-        self.output = nn.Linear(5, 1)
+        self.output = nn.Linear(int( vector_len / 10), 1)
         self.act_output = nn.Sigmoid()
     def forward(self, x):
         x1 = self.act1(self.hidden1(x))
-        # do = self.dropout( x1)
-        # x2 = self.act2(self.hidden2(do))
-        x2 = self.act2(self.hidden2(x1))
+        do = self.dropout( x1)
+        x2 = self.act2(self.hidden2(do))
+        # x2 = self.act2(self.hidden2(x1))
         x_out = self.act_output(self.output(x2))
 
         return x_out.flatten()
@@ -102,6 +102,9 @@ def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
     :return:
     """
     n = int( math.sqrt (len(X)))
+    if nntype == "masked":
+        n = int(n /2)
+
     matrix = X.reshape( n, n + 1)[:,:(n-1)]
     inverted = 1 - matrix
     plt.pcolormesh( inverted, cmap="hot")
@@ -122,15 +125,13 @@ if __name__ == '__main__':
 
     device = torch.device("cpu")
 
-    withmask = (nntype == "masked")
-
     cache_file = os.path.join( cache_dir, f"dataset_{N}_{nntype}.pkl")
-    train_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='train', documentvectors_dir=vectors_dir, transformation=transformation, withmask=withmask, cache_file=cache_file)
+    train_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='train', documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype, cache_file=cache_file)
     validation_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='validation', documentvectors_dir=vectors_dir, transformation=transformation, withmask=False, cache_file=cache_file)
 
     # parameters
-    batch_size = 32
-    n_epochs = 50
+    batch_size = 100
+    n_epochs = 100
     learning_rate = 0.001
     nr_of_heatmaps = 100
 
@@ -203,7 +204,7 @@ if __name__ == '__main__':
                 title += "(Equal)" if equal else "(NOT equal)"
 
                 filename = validation_ds.get_pair(i) + ".png"
-                make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
+                # make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
 
                 nr_of_heatmaps -= 1
                 progress.update()
