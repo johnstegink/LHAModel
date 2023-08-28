@@ -1,4 +1,4 @@
-# Class implements a dataloader for corpus files. It uses a cache for the distance matrix
+# Class implements a dataset for corpus files. It uses a cache for the distance matrix
 import pickle
 import torch
 import torch.nn.functional as torchF
@@ -15,12 +15,11 @@ class SectionDataset:
 
     def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, nntype, transformation, cache_file):
         """
-        Set variables and read or create the graph
         :param N: the maximum number of sections i.e. the size of the vector will be NxN
         :param device: the device to put the tensors on
         :param corpus_dir: the directory with the corpus containing the document pairs
         :param dataset: can either be 'train' or 'validation'
-        :param nntype: is a choice from the list ["plain", "masked", "lstm", "stat"]
+        :param nntype: is a choice from the list ["plain", "masked", "lstm"]
         :param documentvectors_dir: the directory containing the documentvectors
         :param transformation: can either be 'truncate' or 'avg'
                                - truncate: elements having index > (N-1) are discarded
@@ -31,6 +30,9 @@ class SectionDataset:
 
 
         self.N = N
+        if not nntype in ["plain", "masked", "lstm"]:
+            raise f"Unknown nntype: {transformation}, only 'plain', 'lstm' or 'masked' are allowed"
+
         self.NNType = nntype
         self.device = device
         self.withmask = nntype == "masked"
@@ -40,6 +42,8 @@ class SectionDataset:
             self.transformation = self.__average_transformation
         else:
             raise f"Unknown transformation: {transformation}, only 'truncate' or 'avg' are allowed"
+
+
 
         if not os.path.isfile( cache_file):
             self.__fill_cache( cache_file, Corpus(directory=corpus_dir),  DocumentVectors.read(documentvectors_dir))

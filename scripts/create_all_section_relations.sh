@@ -1,6 +1,6 @@
 #!/bin/zsh -m
 
-COPRUSDIR=/Users/jstegink/thesis/corpora
+COPRUSDIR=/Volumes/Extern/Studie/studie/corpora
 VECTORDIR=/Volumes/Extern/Studie/studie/vectors
 RELATIONSDIR=/Volumes/Extern/Studie/studie/relations
 CURRENT=`pwd`
@@ -16,10 +16,10 @@ cd $CURRENT
 
 
 # Wikimatch
-PREFIX=gwikimatch_nl
+#PREFIX=gwikimatch_nl
 #$VENVDIR/python LHA_Phase2.py -c $COPRUSDIR/wikimatch/nl -i $VECTORDIR/$PREFIX\.xml -r $RELATIONSDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -m $MAXDOC
 PREFIX=gwikimatch_en
-$VENVDIR/python LHA_Phase2.py -c $COPRUSDIR/wikimatch/en -i $VECTORDIR/$PREFIX\.xml -r $RELATIONSDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -k $NEARESTNEIGHBORS -d /Volumes/Extern/Studie/studie/html
+$VENVDIR/python LHA_Phase2.py -c $COPRUSDIR/$PREFIX -i $VECTORDIR/$PREFIX\.xml -r $RELATIONSDIR/$PREFIX\.xml -s $SIM -o $OUTDIR/$PREFIX\.xml -k $NEARESTNEIGHBORS -d /Volumes/Extern/Studie/studie/html
 
 # WikiSim
 PREFIX=WikiSim_nl

@@ -38,6 +38,21 @@ class DocumentSectionRelations:
 
         return sectionrelations
 
+    def get_section_relations(self, src, dest):
+        """
+        returns all similar sections of the given source and destination
+        :param src: Id of source
+        :param dest: Id of destination
+        :return:
+        """
+
+        if src in self.relations:
+            for relation in self.relations[src]:
+                if relation.get_dest() == dest:
+                    return relation.get_relations()
+
+        return []       # No relations
+
 
     def save(self, file):
         """

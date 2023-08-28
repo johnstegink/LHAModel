@@ -19,6 +19,22 @@ class SectionRelation:
         """
         return self.dest
 
+    def get_dest_place(self):
+        """
+        Returns the place of the destination section in the document
+        :return:
+        """
+
+        return int( self.dest[1:])
+
+    def get_src_place(self):
+        """
+        Returns the place of the source section in the document
+        :return:
+        """
+
+        return int(self.dest[1:])
+
     def get_src(self):
         """
         Read the source id

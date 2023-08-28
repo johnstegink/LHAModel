@@ -102,6 +102,16 @@ class Document:
             raise StopIteration
 
 
+    def get_nrof_sections(self):
+        """
+        Returns the number of sections in this document
+        :return:
+        """
+
+        return len(self.sections)
+
+
+
     def get_links(self):
         """
         Returns a list of tuples with the links

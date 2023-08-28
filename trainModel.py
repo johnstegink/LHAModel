@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 import functions
 from network.SectionDataset import SectionDataset
+from network.SectionDatasetStat import SectionDatasetStat
 from texts.corpus import Corpus
 
 
@@ -31,9 +32,10 @@ def read_arguments():
     parser.add_argument('-c', '--corpus_dir', help='The directory of the corpus to train on', required=True)
     parser.add_argument('-nn', '--neuralnetworktype', help='The type of neural network', required=True, choices=["plain", "masked", "lstm", "stat"])
     parser.add_argument('-s', '--cache_dir', help='The directory used for caching', required=True)
-    parser.add_argument('-v', '--vectors_dir', help='The directory containing the document and section vectors of this corpus', required=True)
+    parser.add_argument('-v', '--vectors_dir', help='The directory containing the document and section vectors of this corpus', required=False)
+    parser.add_argument('-r', '--relationsfile', help='The xml file containing the relations between the documents', required=False)
     parser.add_argument('-m', '--heatmap_dir', help='The directory containing the images with the heatmaps', required=True)
-    parser.add_argument('-t', '--transformation', help='The transformation to apply to sections with an index larger than N', required=True, choices=['truncate', 'avg'])
+    parser.add_argument('-t', '--transformation', help='The transformation to apply to sections with an index larger than N', required=F, choices=['truncate', 'avg'])
 
     args = vars(parser.parse_args())
 
@@ -41,7 +43,7 @@ def read_arguments():
     if os.path.exists( args["heatmap_dir"]):
         functions.remove_redirectory_recursivly(args["heatmap_dir"])
 
-    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"], args["neuralnetworktype"].lower())
+    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"], args["neuralnetworktype"].lower(), args["relationsfile"])
 
 class NeuralNetworkPlain(nn.Module):
     """
@@ -65,6 +67,31 @@ class NeuralNetworkPlain(nn.Module):
         x_out = self.act_output(self.output(x2))
 
         return x_out.flatten()
+
+class NeuralNetworkStat(nn.Module):
+    """
+    Basic neural network, without masks
+    """
+    def __init__(self, N):
+        super(NeuralNetworkStat, self).__init__()
+
+        self.hidden1 = nn.Linear(N, N)
+        self.dropout1 = nn.Dropout( 0.2)
+        self.act1 = nn.ReLU()
+        self.hidden2 = nn.Linear(N, N)
+        self.dropout2 = nn.Dropout( 0.2)
+        self.act2 = nn.ReLU()
+        self.output = nn.Linear(N, 1)
+        self.act_output = nn.Sigmoid()
+    def forward(self, x):
+        x1 = self.act1(self.hidden1(x))
+        do1 = self.dropout1( x1)
+        x2 = self.act2(self.hidden2(do1))
+        do2 = self.dropout2( x2)
+        x_out = self.act_output(self.output(do2))
+
+        return x_out.flatten()
+
 
 class NeuralNetworkMask(nn.Module):
     """
@@ -121,17 +148,30 @@ def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
 
 ## Main part
 if __name__ == '__main__':
-    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype) = read_arguments()
+    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype, relations_file) = read_arguments()
 
     device = torch.device("cpu")
 
+
     cache_file = os.path.join( cache_dir, f"dataset_{N}_{nntype}.pkl")
-    train_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='train', documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype, cache_file=cache_file)
-    validation_ds = SectionDataset( N=N, device=device, corpus_dir=corpusdir, dataset='validation', documentvectors_dir=vectors_dir, transformation=transformation, withmask=False, cache_file=cache_file)
+    if( nntype=="stat"):
+        threshold = 0.3
+        train_ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, dataset='train',
+                                      relationsfile=relations_file, top_threshold=threshold, cache_file=cache_file)
+        validation_ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, dataset='validation',
+                                      relationsfile=relations_file, top_threshold=threshold, cache_file=cache_file)
+    else:
+        train_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir, dataset='train',
+                                  documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype,
+                                  cache_file=cache_file)
+        validation_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir, dataset='validation',
+                                   documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype,
+                                   cache_file=cache_file)
+
 
     # parameters
     batch_size = 100
-    n_epochs = 100
+    n_epochs = 200
     learning_rate = 0.001
     nr_of_heatmaps = 100
 
@@ -144,7 +184,9 @@ if __name__ == '__main__':
     if nntype == "plain":
         model = NeuralNetworkPlain( N)
     elif nntype == "masked":
-        model = NeuralNetworkMask( N)
+        model = NeuralNetworkMask(N)
+    elif nntype == "stat":
+        model = NeuralNetworkStat( 4)
     else:
         raise f"Unknown neural network type: {nntype}"
 
