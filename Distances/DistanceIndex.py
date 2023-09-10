@@ -139,7 +139,10 @@ class DistanceIndex:
         :param id2:
         :return:
         """
-        vector1 = self.documentvectors.get_documentvector(id1).get_vector()
-        vector2 = self.documentvectors.get_documentvector(id2).get_vector()
+        vector1 = self.documentvectors.get_documentvector(id1)
+        vector2 = self.documentvectors.get_documentvector(id2)
 
-        return 1. / (1. + spdistance.cosine(vector1, vector2))
+        if not vector1 is None and not vector2 is None:
+            return 1. / (1. + spdistance.cosine(vector1.get_vector(), vector2.get_vector()))
+        else:
+            return  None

@@ -112,7 +112,7 @@ class SectionDataset:
                     rows.append( list( vector))
 
 
-                labels.append( pair.get_similarity() )
+                labels.append( [pair.get_similarity()] )
 
 
         self.__save_in_pickle(rows, labels, titles, pairs, file)

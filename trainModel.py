@@ -75,22 +75,20 @@ class NeuralNetworkStat(nn.Module):
     def __init__(self, N):
         super(NeuralNetworkStat, self).__init__()
 
-        self.hidden1 = nn.Linear(N, N)
-        self.dropout1 = nn.Dropout( 0.2)
-        self.act1 = nn.ReLU()
-        self.hidden2 = nn.Linear(N, N)
-        self.dropout2 = nn.Dropout( 0.2)
-        self.act2 = nn.ReLU()
-        self.output = nn.Linear(N, 1)
-        self.act_output = nn.Sigmoid()
+        self.linear = nn.Sequential(
+            nn.Linear(N, N),
+            nn.Dropout( 0.2),
+            nn.ReLU(),
+            nn.Linear(N, N),
+            nn.Dropout( 0.2),
+            nn.ReLU(),
+            nn.Linear(N, 1)
+        )
     def forward(self, x):
-        x1 = self.act1(self.hidden1(x))
-        do1 = self.dropout1( x1)
-        x2 = self.act2(self.hidden2(do1))
-        do2 = self.dropout2( x2)
-        x_out = self.act_output(self.output(do2))
+        out = self.linear( x)
+        result = torch.sigmoid( out)
 
-        return x_out.flatten()
+        return result
 
 
 class NeuralNetworkMask(nn.Module):
@@ -116,6 +114,70 @@ class NeuralNetworkMask(nn.Module):
         x_out = self.act_output(self.output(x2))
 
         return x_out.flatten()
+
+def evaluate_model( model, validation_ds, nr_of_heatmaps, verbose):
+    """
+    Evaluate the model based on the validation dataset
+    :param model:
+    :param validation_ds:
+    :param nr_of_heatmaps: if 0 no heatmaps are created
+    :param verbose: if False only a summary line is printed, otherwise a verbose summary
+    :return:
+    """
+    # Evaluate the model
+    correct = 0.0
+    fp = 0.0
+    tp = 0.0
+    tn = 0.0
+    fn = 0.0
+    total = len(validation_ds)
+    for i in range(0, total):
+
+        (X, Y) = validation_ds[i]
+        prediction = 1 if model.predict(X) >= 0.5 else 0
+
+        print( f"{int(Y)} -> {model.predict(X)}")
+
+        if prediction == 0 and int(Y) == 1:
+            fp += 1.0
+
+        elif prediction == 1 and int(Y) == 1:
+            correct += 1.0
+            tp += 1.0
+
+        elif prediction == 0 and int(Y) == 1:
+            fn += 1.0
+
+        else:
+            tn += 1.0
+            correct += 1.0
+
+        if nr_of_heatmaps > 0:
+            equal = int(Y)
+            title = validation_ds.get_title(i) + " "
+            title += "(Equal)" if equal else "(NOT equal)"
+
+            filename = validation_ds.get_pair(i) + ".png"
+            # make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
+
+            nr_of_heatmaps -= 1
+
+
+
+
+
+    # Print the accuracy
+    tp = max( 1, tp)
+
+    recall = tp / (tp + fn)
+    precision = tp / (tp + fp)
+    F1 = (2 * recall * precision) / (recall + precision)
+    accuracy = int((correct / total) * 100)
+
+    if verbose:
+        print(f"Accuracy: {accuracy}%\ntp: {tp}, \nfp:{fp}\nF1:{F1}\nPrecision: {precision}\nRecall: {recall}")
+    else:
+        print(f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}")
 
 def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
     """
@@ -170,10 +232,10 @@ if __name__ == '__main__':
 
 
     # parameters
-    batch_size = 100
-    n_epochs = 200
-    learning_rate = 0.001
-    nr_of_heatmaps = 100
+    batch_size = 25
+    n_epochs = 50
+    learning_rate = 0.01
+    nr_of_heatmaps = 0
 
 
     train_dl = DataLoader( train_ds, batch_size=batch_size, shuffle=True)
@@ -193,6 +255,7 @@ if __name__ == '__main__':
 
     model.to( device)
     loss_fn = nn.BCELoss()  # binary cross entropy
+    # loss_fn = torch.nn.CrossEntropyLoss()  # Cross entropy loss
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     losses = []
@@ -202,12 +265,14 @@ if __name__ == '__main__':
             (X, Y) = batch
 
             y_pred = model(X)
-            loss = loss_fn(y_pred, Y)
+            loss = loss_fn(Y, y_pred)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
         losses.append(float(loss))
+        # evaluate_model(model=model, validation_ds=train_ds, nr_of_heatmaps=0, verbose=False)
+
         print(f'Finished epoch {epoch}, latest loss {loss}')
 
     # Plot the loss graph.
@@ -216,49 +281,5 @@ if __name__ == '__main__':
     plt.ylabel('Loss')
     plt.show()
 
-    # Evaluate the model
-    correct = 0.0
-    fp = 0.0
-    tp = 0.0
-    fn = 0.0
-    total = len(validation_ds)
-    with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
-        for i in range(0, total):
-
-            (X, Y) = validation_ds[i]
-            prediction = 1 if model(X) >= 0.5 else 0
-
-            if prediction == 0 and int(Y) == 1:
-                fp += 1.0
-
-            elif prediction == 1 and int(Y) == 1:
-                tp += 1.0
-
-            elif prediction == 0 and int(Y) == 1:
-                fn += 1.0
-
-            if int(prediction) == int(Y):
-                correct += 1.0
-
-            if nr_of_heatmaps > 0:
-                equal = int(Y)
-                title = validation_ds.get_title(i) + " "
-                title += "(Equal)" if equal else "(NOT equal)"
-
-                filename = validation_ds.get_pair(i) + ".png"
-                # make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
-
-                nr_of_heatmaps -= 1
-                progress.update()
-
-
-
-
-    # Print the accuracy
-    recall = tp / (tp + fn)
-    precision = tp / (tp + fp)
-    F1 = (2 * recall * precision) / (recall + precision)
-    accuracy = int((correct / total) * 100)
-    print(f"Accuracy: {accuracy}%\ntp: {tp}, \nfp:{fp}\nF1:{F1}\nPrecision: {precision}\nRecall: {recall}")
-    print(f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\{fn}")
+    evaluate_model(model=model, validation_ds=validation_ds, nr_of_heatmaps=nr_of_heatmaps, verbose=True)
 

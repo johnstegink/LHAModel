@@ -156,7 +156,11 @@ class DocumentVectors:
         :param id:
         :return:
         """
-        return self.vectors[id]
+
+        if id in self.vectors:
+            return self.vectors[id]
+        else:
+            return None
 
     def documentvector_exists(self, id):
         """

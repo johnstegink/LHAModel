@@ -45,7 +45,7 @@ class SectionDatasetStat:
         self.pairs = []
         for i in range( start_index, end_index + 1):
             self.data.append(torch.tensor( all_data[i], dtype=torch.float32, device=self.device))
-            self.labels.append(torch.tensor( all_labels[i], dtype=torch.float32, device=self.device))
+            self.labels.append(torch.tensor( torch.tensor( all_labels[i], dtype=torch.float32, device=self.device), dtype=torch.float32, device=self.device))
             self.titles.append( all_titles[i])
             self.pairs.append( all_pairs[i])
 
@@ -86,7 +86,7 @@ class SectionDatasetStat:
             # titles.append( f"{src_doc.get_title()} --> {dest_doc.get_title()}");
             titles.append( f"{src} --> {dest} ")
             pairs.append( f"{src} --> {dest} ")
-            labels.append(pair.get_similarity())
+            labels.append([pair.get_similarity()])
 
         self.__save_in_pickle(rows, labels, titles, pairs, file)
 
