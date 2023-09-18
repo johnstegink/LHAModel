@@ -62,12 +62,17 @@ class SectionDatasetStat:
         titles = []
         pairs = []
 
+        nr_of_0_vectors = 0
         dsr = DocumentSectionRelations.read( relationsfile)
         for pair in corpus.read_document_pairs():
             src = pair.get_src()
             dest = pair.get_dest()
 
+            # Search for source or destination
             sections = dsr.get_section_relations( pair.get_src(), pair.get_dest())
+            if len(sections) != 0:
+                sections = dsr.get_section_relations(pair.get_dest(), pair.get_src())
+
             if len(sections) != 0:
                 src_doc = corpus.getDocument(src)
                 dest_doc = corpus.getDocument(dest)
@@ -80,6 +85,7 @@ class SectionDatasetStat:
                 top_dest_score = sum( [1.0 for sect in sections if self.is_top_section( sect.get_dest_place(), nrof_dest_sections )] ) / total_nrof_src_sections
                 vector = [avg_count, avg_score, top_src_score, top_dest_score]
             else:
+                nr_of_0_vectors += 1
                 vector = [0.0, 0.0, 0.0, 0.0]
 
             rows.append( list(vector))
@@ -87,6 +93,8 @@ class SectionDatasetStat:
             titles.append( f"{src} --> {dest} ")
             pairs.append( f"{src} --> {dest} ")
             labels.append(pair.get_similarity())
+
+        print(f"Number of 0 vectors: {nr_of_0_vectors}")
 
         self.__save_in_pickle(rows, labels, titles, pairs, file)
 

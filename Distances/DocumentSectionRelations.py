@@ -11,6 +11,9 @@
 #         ...
 #      </srcdoc>
 #   </sectionrelations>
+import gc
+import os.path
+import pickle
 
 from Distances.SectionRelations import SectionRelations
 from lxml import etree as ET
@@ -72,6 +75,7 @@ class DocumentSectionRelations:
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))
+        functions.write_pickle( file, self.relations)
 
 
     @staticmethod
@@ -82,12 +86,23 @@ class DocumentSectionRelations:
         :return: DocumentSectionsRelations object
         """
 
-        drs = DocumentSectionRelations()
-        root = ET.parse(file).getroot()
-        for src_doc in root:
-            for dest_doc in src_doc:
-                dest = drs.add( src_doc.attrib["id"], dest_doc.attrib["id"], float(dest_doc.attrib["similarity"]) )
-                for section in dest_doc:
-                    dest.add_section( section.attrib["src"], section.attrib["dest"], float( section.attrib["similarity"]))
+        drs = functions.read_from_pickle( file)
+        if drs is None:
+            drs = DocumentSectionRelations()
+            root = ET.parse(file).getroot()
+            for src_doc in root:
+                for dest_doc in src_doc:
+                    dest = drs.add( src_doc.attrib["id"], dest_doc.attrib["id"], float(dest_doc.attrib["similarity"]) )
+                    for section in dest_doc:
+                        dest.add_section( section.attrib["src"], section.attrib["dest"], float( section.attrib["similarity"]))
+
+            del root
+            #gc.collect()
+
+            functions.write_pickle( file, drs)
 
         return drs
+
+
+
+

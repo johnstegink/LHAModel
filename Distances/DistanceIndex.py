@@ -115,11 +115,12 @@ class DistanceIndex:
         sims = orgsims
         last_sim_row = sims.shape[1]
 
-        sorted = sims.argsort()
         dr = DocumentRelations()
         for i1 in range(0, len(docids1)):
+            sorted = np.argsort( sims[i1]).tolist()
+            sorted.reverse() # We want to order descending
             for iSorted in range(0, min( last_sim_row, maximum_number_of_results)):
-                i2 = sorted[i1, last_sim_row - iSorted - 1]
+                i2 = sorted[iSorted]
                 if sims[i1, i2] >= minimal_similarity:
                     docid1 = docids1[i1]
                     docid2 = docids2[i2]

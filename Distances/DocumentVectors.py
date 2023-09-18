@@ -1,4 +1,6 @@
 # Class to read and write documentvectors
+import gc
+import pickle
 
 from Distances.DocumentVector import DocumentVector
 from lxml import etree as ET
@@ -70,6 +72,7 @@ class DocumentVectors:
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))
+        functions.write_pickle(file, self.vectors)
 
 
     @staticmethod
@@ -80,19 +83,25 @@ class DocumentVectors:
         :param id_filter: regular expression that filters the ids
         :return: DocumentVectors object
         """
-        dv = DocumentVectors()
-        root = ET.parse(file).getroot()
-        for document in root:
-            id = document.find("id").text
-            if id_filter is None or id_filter.match( id):
-                if not document.find("vector").text is None:
-                    vector = [float(value) for value in document.find("vector").text.split(",")]
-                    dv.add( id, vector)
-                    for section in (document.find("sections").findall("section")):
-                        if not section.text is None:
-                            sectionvector = [float(value) for value in section.text.split(",")]
-                            dv.add_section( id, sectionvector)
 
+        dv = functions.read_from_pickle(file)
+        if dv is None:
+            dv = DocumentVectors()
+            root = ET.parse(file).getroot()
+            for document in root:
+                id = document.find("id").text
+                if id_filter is None or id_filter.match( id):
+                    if not document.find("vector").text is None:
+                        vector = [float(value) for value in document.find("vector").text.split(",")]
+                        dv.add( id, vector)
+                        for section in (document.find("sections").findall("section")):
+                            if not section.text is None:
+                                sectionvector = [float(value) for value in section.text.split(",")]
+                                dv.add_section( id, sectionvector)
+            functions.write_pickle( file, dv)
+
+            del root
+            #gc.collect()
         return dv
 
 

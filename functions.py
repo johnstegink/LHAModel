@@ -1,5 +1,6 @@
 import hashlib
 import os
+import pickle
 import shutil
 import sys
 from pathlib import Path
@@ -217,3 +218,42 @@ def copy_dir( src_dir, dest_dir):
         if os.path.isfile(source):
             shutil.copy(source, destination)
 
+
+def __determine_pickle_filename(file):
+    """
+    Determine the filename used for the pickl
+    :param file:
+    :return:
+    """
+    return os.path.splitext(file)[0] + ".pkl"
+
+
+def write_pickle( file, data ):
+    """
+    Write to a pickle file
+    :param file:
+    :param data:
+    :return:
+    """
+
+    # with open( __determine_pickle_filename(file) , "wb") as pickle_file:
+    #     pickle.dump( data, pickle_file)
+
+
+def read_from_pickle( file):
+    """
+    Read the data from a pickle file if it is newer than the original file
+    :param file:
+    :return: (data, labels)
+    """
+
+
+    # pickle_name = __determine_pickle_filename(file)
+    # # Pickl file is newer than xml-file
+    # if os.path.exists( pickle_name) and os.path.getctime( file) < os.path.getctime( pickle_name):
+    #     with open(file, "rb") as pickle_file:
+    #         return pickle.load(pickle_file)
+    # else:
+    #     return None
+
+    return None

@@ -101,21 +101,18 @@ class NeuralNetworkMask(nn.Module):
         super(NeuralNetworkMask, self).__init__()
         vector_len = 2*N*N
 
-        self.hidden1 = nn.Linear(vector_len, int( vector_len / 2))
-        self.dropout = nn.Dropout( 0.2)
-        self.act1 = nn.ReLU()
-        self.hidden2 = nn.Linear(int( vector_len / 2), int( vector_len / 10))
-        self.act2 = nn.ReLU()
-        self.output = nn.Linear(int( vector_len / 10), 1)
-        self.act_output = nn.Sigmoid()
-    def forward(self, x):
-        x1 = self.act1(self.hidden1(x))
-        do = self.dropout( x1)
-        x2 = self.act2(self.hidden2(do))
-        # x2 = self.act2(self.hidden2(x1))
-        x_out = self.act_output(self.output(x2))
+        self.linear = nn.Sequential(
+            nn.Linear(vector_len, int( vector_len / 2)),
+            nn.Dropout( 0.2),
+            nn.ReLU(),
+            nn.Linear(int( vector_len / 2), int( vector_len / 10)),
+            nn.ReLU(),
+            nn.Linear(int( vector_len / 10), 1)
+        )
 
-        return x_out.flatten()
+    def forward(self, x):
+        out = self.linear( x)
+        return torch.sigmoid( out)
 
 def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
     """
@@ -142,6 +139,59 @@ def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
 
     plt.savefig( os.path.join(dir ,filename))
 
+
+def evaluate_the_model( model, validation_ds, nr_of_heatmaps ):
+    """
+    Make an evaluation of the model
+    :param model:
+    :param validation_ds:
+    :param nr_of_heatmaps:
+    :return:
+    """
+    # Evaluate the model
+    correct = 0.0
+    fp = 0.0
+    tp = 0.0
+    fn = 0.0
+    total = len(validation_ds)
+    with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
+        for i in range(0, total):
+
+            (X, Y) = validation_ds[i]
+            prediction = 1 if model(X) >= 0.5 else 0
+
+            if prediction == 0 and int(Y) == 1:
+                fp += 1.0
+
+            elif prediction == 1 and int(Y) == 1:
+                correct += 1.0
+                tp += 1.0
+
+            elif prediction == 0 and int(Y) == 1:
+                fn += 1.0
+
+            if int(prediction) == int(Y):
+                correct += 1.0
+
+            if nr_of_heatmaps > 0:
+                equal = int(Y)
+                title = validation_ds.get_title(i) + " "
+                title += "(Equal)" if equal else "(NOT equal)"
+
+                filename = validation_ds.get_pair(i) + ".png"
+                # make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
+
+                nr_of_heatmaps -= 1
+                progress.update()
+
+    # Print the accuracy
+    if tp > 0:
+        recall = tp / (tp + fn)
+        precision = tp / (tp + fp)
+        F1 = (2 * recall * precision) / (recall + precision)
+        accuracy = int((correct / total) * 100)
+        print(f"Accuracy: {accuracy}%\ntp: {tp}, \nfp:{fp}\nF1:{F1}\nPrecision: {precision}\nRecall: {recall}")
+        print(f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}")
 
 
 
@@ -171,9 +221,9 @@ if __name__ == '__main__':
 
     # parameters
     batch_size = 100
-    n_epochs = 200
-    learning_rate = 0.001
-    nr_of_heatmaps = 100
+    n_epochs = 50
+    learning_rate = 0.01
+    nr_of_heatmaps = 0
 
 
     train_dl = DataLoader( train_ds, batch_size=batch_size, shuffle=True)
@@ -207,6 +257,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
 
+        # evaluate_the_model(model=model, validation_ds=validation_ds, nr_of_heatmaps=nr_of_heatmaps)
         losses.append(float(loss))
         print(f'Finished epoch {epoch}, latest loss {loss}')
 
@@ -216,49 +267,11 @@ if __name__ == '__main__':
     plt.ylabel('Loss')
     plt.show()
 
-    # Evaluate the model
-    correct = 0.0
-    fp = 0.0
-    tp = 0.0
-    fn = 0.0
-    total = len(validation_ds)
-    with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
-        for i in range(0, total):
-
-            (X, Y) = validation_ds[i]
-            prediction = 1 if model(X) >= 0.5 else 0
-
-            if prediction == 0 and int(Y) == 1:
-                fp += 1.0
-
-            elif prediction == 1 and int(Y) == 1:
-                tp += 1.0
-
-            elif prediction == 0 and int(Y) == 1:
-                fn += 1.0
-
-            if int(prediction) == int(Y):
-                correct += 1.0
-
-            if nr_of_heatmaps > 0:
-                equal = int(Y)
-                title = validation_ds.get_title(i) + " "
-                title += "(Equal)" if equal else "(NOT equal)"
-
-                filename = validation_ds.get_pair(i) + ".png"
-                # make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
-
-                nr_of_heatmaps -= 1
-                progress.update()
+    evaluate_the_model(model=model, validation_ds=train_ds, nr_of_heatmaps=nr_of_heatmaps)
 
 
 
 
-    # Print the accuracy
-    recall = tp / (tp + fn)
-    precision = tp / (tp + fp)
-    F1 = (2 * recall * precision) / (recall + precision)
-    accuracy = int((correct / total) * 100)
-    print(f"Accuracy: {accuracy}%\ntp: {tp}, \nfp:{fp}\nF1:{F1}\nPrecision: {precision}\nRecall: {recall}")
-    print(f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\{fn}")
+
+
 

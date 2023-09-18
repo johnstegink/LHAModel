@@ -1,4 +1,5 @@
 # Class to read and write document relations
+import gc
 
 from Distances.DocumentRelation import DocumentRelation
 from lxml import etree as ET
@@ -44,7 +45,7 @@ class DocumentRelations:
 
         # Write the file
         functions.write_file( file, functions.xml_as_string(root))
-
+        functions.write_pickle( file, self.relations)
 
     def save_html(self, src_corpus, output, dest_corpus = None, startof_id_filter = None):
         """
@@ -88,13 +89,19 @@ class DocumentRelations:
         :param file: xml file, that was created with a save
         :return: Tuple (DocumentVectors object, attributes dictionary)
         """
-        dr = DocumentRelations()
-        root = ET.parse(file).getroot()
-        for document in root:
-            src = document.find("src").text
-            dest = document.find("dest").text
-            similarity = float(document.find("similarity").text)
-            dr.add( src, dest, similarity)
+
+        dr = functions.read_from_pickle( file)
+        if dr is None:
+            dr = DocumentRelations()
+            root = ET.parse(file).getroot()
+            for document in root:
+                src = document.find("src").text
+                dest = document.find("dest").text
+                similarity = float(document.find("similarity").text)
+                dr.add( src, dest, similarity)
+
+
+            functions.write_pickle( file, dr)
 
         return (dr, root.attrib)
 
