@@ -1,6 +1,7 @@
 # Class implements a dataset for corpus files. It uses a cache for the distance matrix
 import pickle
 import torch
+import torch.utils.data
 import torch.nn.functional as torchF
 import math
 
@@ -11,7 +12,7 @@ import os
 import numpy as np
 from statistics import mean
 
-class SectionDataset:
+class SectionDataset(torch.utils.data.IterableDataset):
 
     def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, nntype, transformation, cache_file):
         """
@@ -27,6 +28,7 @@ class SectionDataset:
         :param cache_file: The cachefile containing a cached version of the similarity graph
         """
 
+        super(SectionDataset).__init__()
 
 
         self.N = N
@@ -82,7 +84,7 @@ class SectionDataset:
         rows = []
         titles = []
         pairs = []
-        for pair in corpus.read_document_pairs():
+        for pair in corpus.read_document_pairs( True):
             src = pair.get_src()
             dest = pair.get_dest()
 
@@ -176,6 +178,10 @@ class SectionDataset:
         average = mean( matrix_row[(self.N - 1):])
         return matrix_row[0:(self.N - 1)] + [average]
 
+
+    def __iter__(self):
+        ...
+        return iter(range(0, len(self.data)))
 
     def __len__(self):
         """

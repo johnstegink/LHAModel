@@ -175,14 +175,18 @@ class Corpus:
                 sims.add( src, dest, 0)
 
 
-    def read_document_pairs(self):
+    def read_document_pairs(self, shuffled):
         """
         returns the document pairs of the corpus that have manually been annotated
+        :param shuffled: If true the set will be shuffled
         :return: Documentrelations object
         """
 
         dv = DocumentRelations()
-        for pair in functions.read_article_pairs( self.directory):
+        pairs = functions.read_article_pairs( self.directory)
+        if shuffled: random.shuffle( pairs)
+
+        for pair in pairs:
             dv.add( pair[0], pair[1], pair[2])
 
         return dv

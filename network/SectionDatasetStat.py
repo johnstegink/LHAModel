@@ -1,6 +1,7 @@
 # Class implements a dataset for corpus files with statistical information. It uses a cache
 import pickle
 import torch
+import torch.utils.data
 
 from Distances.DocumentRelations import DocumentRelations
 from texts.corpus import Corpus
@@ -10,7 +11,7 @@ import os
 import numpy as np
 from statistics import mean
 
-class SectionDatasetStat:
+class SectionDatasetStat(torch.utils.data.IterableDataset):
 
     def __init__(self, device, corpus_dir, dataset, relationsfile, top_threshold, cache_file):
         """
@@ -21,6 +22,8 @@ class SectionDatasetStat:
         :param relationsfile: the xml file containing the relations between the documents
         :param cache_file: The cachefile containing a cached version of the similarity graph
         """
+
+        super(SectionDatasetStat).__init__()
 
         self.device = device
         self.top_threshold = top_threshold
@@ -40,15 +43,13 @@ class SectionDatasetStat:
             raise f"Unknown dataset {dataset} only 'train' or 'validation' are allowed"
 
         self.data = []
-        self.labels = []
         self.titles = []
         self.pairs = []
+        self.combi = []
         for i in range( start_index, end_index + 1):
-            self.data.append(torch.tensor( all_data[i], dtype=torch.float32, device=self.device))
-            self.labels.append(torch.tensor( all_labels[i], dtype=torch.float32, device=self.device))
+            self.data.append([torch.tensor( all_data[i], dtype=torch.float32, device=self.device), torch.tensor( all_labels[i], dtype=torch.float32, device=self.device)])
             self.titles.append( all_titles[i])
             self.pairs.append( all_pairs[i])
-
 
     def __fill_cache(self, file, corpus, relationsfile):
         """
@@ -64,7 +65,7 @@ class SectionDatasetStat:
 
         nr_of_0_vectors = 0
         dsr = DocumentSectionRelations.read( relationsfile)
-        for pair in corpus.read_document_pairs():
+        for pair in corpus.read_document_pairs( True):
             src = pair.get_src()
             dest = pair.get_dest()
 
@@ -140,24 +141,9 @@ class SectionDatasetStat:
             pickle.dump( (data, labels, titels, pairs), pickle_file)
 
 
+    def __iter__(self):
+        return iter( self.data)
 
-    def __len__(self):
-        """
-        Standard functions that returns the number of documentpairs
-        :return:
-        """
-
-        return len(self.data)
-
-
-    def __getitem__(self, idx):
-        """
-        Get the i-th item from the dataset
-        :param idx:
-        :return:
-        """
-
-        return( self.data[idx], self.labels[idx])
 
     def get_title(self, idx):
         """

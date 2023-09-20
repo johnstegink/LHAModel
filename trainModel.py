@@ -18,6 +18,7 @@ from tqdm import tqdm
 import functions
 from network.SectionDataset import SectionDataset
 from network.SectionDatasetStat import SectionDatasetStat
+from network.SectionDatasetTest import SectionDatasetTest
 from texts.corpus import Corpus
 
 
@@ -30,7 +31,7 @@ def read_arguments():
     parser = argparse.ArgumentParser(description='Create a histogram containing the count of the sections per corpus')
     parser.add_argument('-N', '--sections', help='The number of sections to consider', required=True, type=int)
     parser.add_argument('-c', '--corpus_dir', help='The directory of the corpus to train on', required=True)
-    parser.add_argument('-nn', '--neuralnetworktype', help='The type of neural network', required=True, choices=["plain", "masked", "lstm", "stat"])
+    parser.add_argument('-nn', '--neuralnetworktype', help='The type of neural network', required=True, choices=["plain", "masked", "lstm", "stat", "test"])
     parser.add_argument('-s', '--cache_dir', help='The directory used for caching', required=True)
     parser.add_argument('-v', '--vectors_dir', help='The directory containing the document and section vectors of this corpus', required=False)
     parser.add_argument('-r', '--relationsfile', help='The xml file containing the relations between the documents', required=False)
@@ -204,12 +205,16 @@ if __name__ == '__main__':
 
 
     cache_file = os.path.join( cache_dir, f"dataset_{N}_{nntype}.pkl")
-    if( nntype=="stat"):
+    if( nntype=="test"):
+        train_ds = SectionDatasetTest(device=device, dataset='train', set_size=5000, cache_file=cache_file)
+        validation_ds = SectionDatasetTest(device=device, dataset='validation', set_size=5000, cache_file=cache_file)
+    elif (nntype == "stat"):
         threshold = 0.3
         train_ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, dataset='train',
                                       relationsfile=relations_file, top_threshold=threshold, cache_file=cache_file)
         validation_ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, dataset='validation',
-                                      relationsfile=relations_file, top_threshold=threshold, cache_file=cache_file)
+                                           relationsfile=relations_file, top_threshold=threshold,
+                                           cache_file=cache_file)
     else:
         train_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir, dataset='train',
                                   documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype,
@@ -226,7 +231,7 @@ if __name__ == '__main__':
     nr_of_heatmaps = 0
 
 
-    train_dl = DataLoader( train_ds, batch_size=batch_size, shuffle=True)
+    train_dl = DataLoader( train_ds, batch_size=batch_size, shuffle=False)
     validation_dl = DataLoader( validation_ds, batch_size=batch_size, shuffle=False)
 
 
@@ -245,9 +250,11 @@ if __name__ == '__main__':
     loss_fn = nn.BCELoss()  # binary cross entropy
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    losses = []
     # Train the model
+    losses = []
     for epoch in range(n_epochs):
+        epoch_loss = []
+
         for batch in train_dl:
             (X, Y) = batch
 
@@ -257,9 +264,11 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
 
+            epoch_loss.append( loss.item())
+
         # evaluate_the_model(model=model, validation_ds=validation_ds, nr_of_heatmaps=nr_of_heatmaps)
-        losses.append(float(loss))
-        print(f'Finished epoch {epoch}, latest loss {loss}')
+        losses.append( epoch_loss)
+        print(f'Finished epoch {epoch}, latest loss {epoch_loss}')
 
     # Plot the loss graph.
     plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
