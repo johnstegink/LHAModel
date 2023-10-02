@@ -94,6 +94,7 @@ class NeuralNetworkStat(nn.Module):
         return x_out.flatten()
 
 
+
 class NeuralNetworkMask(nn.Module):
     """
     Basic neural network, with mask added
@@ -141,12 +142,12 @@ def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
     plt.savefig( os.path.join(dir ,filename))
 
 
-def evaluate_the_model( model, validation_ds, nr_of_heatmaps ):
+def evaluate_the_model( model, X_test, Y_test, nr_of_heatmaps ):
     """
     Make an evaluation of the model
     :param model:
-    :param validation_ds:
-    :param nr_of_heatmaps:
+    :param X_test:
+    :param Y_test:
     :return:
     """
     # Evaluate the model
@@ -154,11 +155,12 @@ def evaluate_the_model( model, validation_ds, nr_of_heatmaps ):
     fp = 0.0
     tp = 0.0
     fn = 0.0
-    total = len(validation_ds)
+    total = len(X_test)
     with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
         for i in range(0, total):
 
-            (X, Y) = validation_ds[i]
+            X = X_test[i]
+            Y = Y_test[i]
             prediction = 1 if model(X) >= 0.5 else 0
 
             if prediction == 0 and int(Y) == 1:
@@ -206,8 +208,7 @@ if __name__ == '__main__':
 
     cache_file = os.path.join( cache_dir, f"dataset_{N}_{nntype}.pkl")
     if( nntype=="test"):
-        train_ds = SectionDatasetTest(device=device, dataset='train', set_size=5000, cache_file=cache_file)
-        validation_ds = SectionDatasetTest(device=device, dataset='validation', set_size=5000, cache_file=cache_file)
+        ds = SectionDatasetTest(device=device, set_size=5000, cache_file=cache_file)
     elif (nntype == "stat"):
         threshold = 0.3
         train_ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, dataset='train',
@@ -223,16 +224,30 @@ if __name__ == '__main__':
                                    documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype,
                                    cache_file=cache_file)
 
+    X = torch.tensor( [data[0] for data in ds], dtype=torch.float32, device=device)
+    Y = torch.tensor( [data[1] for data in ds], dtype=torch.float32, device=device)
+    titles = [data[2] for data in ds]
+    pairs = [data[3] for data in ds]
+
+    # split the dataset into training and test sets
+    validation_start = len(X) - int(len(X) / 10)
+
+    X_train = X[:validation_start]
+    y_train = Y[:validation_start]
+    titles_train = titles[:validation_start]
+    pairs_train = pairs[:validation_start]
+    X_test = X[validation_start:]
+    Y_test = Y[validation_start:]
+    titles_test = titles[validation_start:]
+    pairs_test = pairs[validation_start:]
+
 
     # parameters
-    batch_size = 100
+    batch_size = 10
     n_epochs = 50
     learning_rate = 0.01
     nr_of_heatmaps = 0
-
-
-    train_dl = DataLoader( train_ds, batch_size=batch_size, shuffle=False)
-    validation_dl = DataLoader( validation_ds, batch_size=batch_size, shuffle=False)
+    batches_per_epoch = len(X_train) // batch_size
 
 
     # Define the model
@@ -254,17 +269,25 @@ if __name__ == '__main__':
     losses = []
     for epoch in range(n_epochs):
         epoch_loss = []
+        for i in range( batches_per_epoch):
+            start = i * batch_size
 
-        for batch in train_dl:
-            (X, Y, titles, pairs) = batch
+            # take a batch
+            Xbatch = X_train[start:start + batch_size]
+            y_batch = y_train[start:start + batch_size]
 
-            y_pred = model(X)
-            loss = loss_fn(y_pred, Y)
+            # forward pass
+            y_pred = model(Xbatch)
+            loss = loss_fn(y_pred, y_batch)
+
+            # backward pass
             optimizer.zero_grad()
             loss.backward()
+
+            # update weights
             optimizer.step()
 
-            epoch_loss.append( loss.item())
+        epoch_loss.append( loss.item())
 
         # evaluate_the_model(model=model, validation_ds=validation_ds, nr_of_heatmaps=nr_of_heatmaps)
         losses.append( epoch_loss)
@@ -276,7 +299,7 @@ if __name__ == '__main__':
     plt.ylabel('Loss')
     plt.show()
 
-    evaluate_the_model(model=model, validation_ds=train_ds, nr_of_heatmaps=nr_of_heatmaps)
+    evaluate_the_model(model=model, X_test=X_test, Y_test=Y_test, nr_of_heatmaps=nr_of_heatmaps)
 
 
 

@@ -12,10 +12,9 @@ from statistics import mean
 
 class SectionDatasetTest(torch.utils.data.IterableDataset):
 
-    def __init__(self, device, dataset, set_size, cache_file):
+    def __init__(self, device, set_size, cache_file):
         """
         :param device: the device to put the tensors on
-        :param dataset: can either be 'train' or 'validation'
         :param size of the set
         :param cache_file: The cachefile containing a cached version of the similarity graph
         """
@@ -28,15 +27,7 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
 
         self.__fill_cache( cache_file,  set_size)
 
-        all_data = self.__read_from_cache( cache_file)
-
-        validation_start = len( all_data) - int( len(all_data) / 10)
-        if dataset.lower() == 'train':
-            self.data = all_data[0:validation_start - 1]
-        elif dataset.lower() == 'validation':
-            self.data = all_data[validation_start:]
-        else:
-            raise f"Unknown dataset {dataset} only 'train' or 'validation' are allowed"
+        self.data = self.__read_from_cache( cache_file)
 
 
     def __fill_cache(self, file, set_size):
@@ -96,7 +87,7 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
 
     def __iter__(self):
         ...
-        return iter(range(0, len(self.data)))
+        return iter(self.data)
 
     def __len__(self):
         """
