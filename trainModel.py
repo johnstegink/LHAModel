@@ -240,7 +240,7 @@ if __name__ == '__main__':
         model = NeuralNetworkPlain( N)
     elif nntype == "masked":
         model = NeuralNetworkMask(N)
-    elif nntype == "stat":
+    elif nntype == "stat" or nntype=="test":
         model = NeuralNetworkStat( 4)
     else:
         raise f"Unknown neural network type: {nntype}"
@@ -256,7 +256,7 @@ if __name__ == '__main__':
         epoch_loss = []
 
         for batch in train_dl:
-            (X, Y) = batch
+            (X, Y, titles, pairs) = batch
 
             y_pred = model(X)
             loss = loss_fn(y_pred, Y)

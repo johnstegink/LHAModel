@@ -23,60 +23,51 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         super(SectionDatasetTest).__init__()
 
         self.device = device
-        if not os.path.isfile( cache_file):
-            self.__fill_cache( cache_file, Corpus(directory=corpus_dir),  relationsfile)
+        # if not os.path.isfile( cache_file):
+        #     self.__fill_cache( cache_file,  set_size)
 
-        (all_data, all_labels, all_titles, all_pairs) = self.__read_from_cache( cache_file)
+        self.__fill_cache( cache_file,  set_size)
 
-        validation_start = len( all_data) -int( len(all_data) / 10)
+        all_data = self.__read_from_cache( cache_file)
+
+        validation_start = len( all_data) - int( len(all_data) / 10)
         if dataset.lower() == 'train':
-            start_index = 0
-            end_index = validation_start
+            self.data = all_data[0:validation_start - 1]
         elif dataset.lower() == 'validation':
-            start_index = validation_start + 1
-            end_index = len(all_data) - 1
+            self.data = all_data[validation_start:]
         else:
             raise f"Unknown dataset {dataset} only 'train' or 'validation' are allowed"
 
-        self.data = []
-        self.labels = []
-        self.titles = []
-        self.pairs = []
-        for i in range( start_index, end_index + 1):
-            self.data.append(torch.tensor( all_data[i], dtype=torch.float32, device=self.device))
-            self.labels.append(torch.tensor( all_labels[i], dtype=torch.float32, device=self.device))
-            self.titles.append( all_titles[i])
-            self.pairs.append( all_pairs[i])
 
-
-    def __fill_cache(self, file, corpus, set_size):
+    def __fill_cache(self, file, set_size):
         """
         Fill the cache if it does not exist
-        :param corpus: The corpus
-        :param relationsfile: the xml file containing the relations between the documents
+        :param file: The file
+        :param set_size: The size of the set to be generated
         """
 
-        labels = []
         rows = []
-        titles = []
-        pairs = []
-
         for count in range(0, set_size):
             equal = (random.random() < 0.5)
 
             if equal:
-                vector = [random.uniform(0.5, 1.0), random.uniform(0.8, 1.0), random.uniform(0.5, 0.9), random.uniform(0.5, 0.9)]
+                vector = [random.uniform(0.7, 1.0), random.uniform(0.8, 1.0), random.uniform(0.7, 0.9), random.uniform(0.7, 0.9)]
                 title = "Equal"
             else:
-                vector = [random.uniform(0.0, 0.5), random.uniform(0.2, 0.4), random.uniform(0.1, 0.5), random.uniform(0.1, 0.5)]
+                vector = [random.uniform(0.0, 0.3), random.uniform(0.2, 0.4), random.uniform(0.1, 0.3), random.uniform(0.1, 0.3)]
                 title = "Not equal"
 
-            rows.append( list(vector))
-            titles.append( title)
-            pairs.append( title)
-            labels.append( 1.0 if equal else 0.0)
+            # Add a tuple X, Y, title, pair
+            rows.append( (list(vector), 1.0 if equal else 0.0, title, title))
 
-        self.__save_in_pickle(rows, labels, titles, pairs, file)
+        data = ([], [], [], [])
+        for row in rows:
+            data[0].append( row[0])
+            data[1].append(row[1])
+            data[2].append(row[2])
+            data[3].append(row[3])
+
+        self.__save_in_pickle(rows, file)
 
 
 
@@ -88,12 +79,10 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         """
 
         with open(file, "rb") as pickle_file:
-            (data, labels, titles, pairs) = pickle.load(pickle_file)
-
-        return data, labels, titles, pairs
+            return pickle.load(pickle_file)
 
 
-    def __save_in_pickle(self, data, labels, titels, pairs, file):
+    def __save_in_pickle(self, data, file):
         """
         Saves the data and the labels in a pickle file
         :param data:
@@ -102,7 +91,7 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         """
 
         with open(file , "wb") as pickle_file:
-            pickle.dump( (data, labels, titels, pairs), pickle_file)
+            pickle.dump( data, pickle_file)
 
 
     def __iter__(self):
@@ -125,7 +114,7 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         :return:
         """
 
-        return( self.data[idx], self.labels[idx])
+        return( self.data[idx])
 
     def get_title(self, idx):
         """
@@ -133,7 +122,7 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         :param idx:
         :return:
         """
-        return self.titles[idx]
+        return self.data[idx][2]
 
 
     def get_pair(self, idx):
@@ -142,5 +131,5 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         :param idx:
         :return:
         """
-        return self.pairs[idx]
+        return self.data[idx][3]
 
