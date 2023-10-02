@@ -93,6 +93,26 @@ class NeuralNetworkStat(nn.Module):
 
         return x_out.flatten()
 
+class NeuralNetworkTest(nn.Module):
+    """
+    Basic neural network, without masks
+    """
+    def __init__(self, N):
+        super(NeuralNetworkTest, self).__init__()
+
+        self.hidden1 = nn.Linear(N, N)
+        # self.dropout1 = nn.Dropout( 0.2)
+        self.act1 = nn.ReLU()
+        # self.hidden2 = nn.Linear(N, N)
+        # self.dropout2 = nn.Dropout( 0.2)
+        # self.act2 = nn.ReLU()
+        self.output = nn.Linear(N, 1)
+        self.act_output = nn.Sigmoid()
+    def forward(self, x):
+        x1 = self.act1(self.hidden1(x))
+        x_out = self.act_output(self.output(x1))
+
+        return x_out
 
 
 class NeuralNetworkMask(nn.Module):
@@ -225,7 +245,7 @@ if __name__ == '__main__':
                                    cache_file=cache_file)
 
     X = torch.tensor( [data[0] for data in ds], dtype=torch.float32, device=device)
-    Y = torch.tensor( [data[1] for data in ds], dtype=torch.float32, device=device)
+    Y = torch.tensor( [[data[1]] for data in ds], dtype=torch.float32, device=device)
     titles = [data[2] for data in ds]
     pairs = [data[3] for data in ds]
 
@@ -255,8 +275,10 @@ if __name__ == '__main__':
         model = NeuralNetworkPlain( N)
     elif nntype == "masked":
         model = NeuralNetworkMask(N)
-    elif nntype == "stat" or nntype=="test":
-        model = NeuralNetworkStat( 4)
+    elif nntype == "stat":
+        model = NeuralNetworkStat(4)
+    elif nntype == "test":
+        model = NeuralNetworkTest(4)
     else:
         raise f"Unknown neural network type: {nntype}"
 
