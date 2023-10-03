@@ -193,7 +193,7 @@ if __name__ == '__main__':
     corpus = Corpus(directory=corpusdir)
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
-    dsr = DocumentSectionRelations()
+    dsr = DocumentSectionRelations({})
 
     nrofdocuments = dr.count()
 

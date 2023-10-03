@@ -90,8 +90,8 @@ class DocumentRelations:
         :return: Tuple (DocumentVectors object, attributes dictionary)
         """
 
-        dr = functions.read_from_pickle( file)
-        if dr is None:
+        data = functions.read_from_pickle( file)
+        if data is None:
             dr = DocumentRelations()
             root = ET.parse(file).getroot()
             for document in root:
@@ -100,10 +100,17 @@ class DocumentRelations:
                 similarity = float(document.find("similarity").text)
                 dr.add( src, dest, similarity)
 
+            # copy the attributes
+            attr = {}
+            for name in root.attrib:
+                attr[name] = root.attrib[name]
 
-            functions.write_pickle( file, dr)
+            functions.write_pickle( file, (dr, attr))
+        else:
+            (dr, attr) = data
 
-        return (dr, root.attrib)
+
+        return (dr, attr)
 
     def __iter__(self):
         """
@@ -169,3 +176,10 @@ class DocumentRelations:
                 return rel.get_similarity()
 
         return 0
+
+    def __len__(self):
+        """
+        The number of relations
+        :return:
+        """
+        return len( self.relations)

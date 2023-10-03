@@ -15,14 +15,16 @@ import gc
 import os.path
 import pickle
 
+from tqdm import tqdm
+
 from Distances.SectionRelations import SectionRelations
 from lxml import etree as ET
 import html
 import functions
 
 class DocumentSectionRelations:
-    def __init__(self):
-        self.relations = {}   # Dictionary of relations, with the src as a key, and a list of relations as value
+    def __init__(self, relations):
+        self.relations = relations   # Dictionary of relations, with the src as a key, and a list of relations as value
 
     def add(self, src, dest, similarity):
         """
@@ -88,18 +90,20 @@ class DocumentSectionRelations:
 
         drs = functions.read_from_pickle( file)
         if drs is None:
-            drs = DocumentSectionRelations()
-            root = ET.parse(file).getroot()
-            for src_doc in root:
-                for dest_doc in src_doc:
-                    dest = drs.add( src_doc.attrib["id"], dest_doc.attrib["id"], float(dest_doc.attrib["similarity"]) )
-                    for section in dest_doc:
-                        dest.add_section( section.attrib["src"], section.attrib["dest"], float( section.attrib["similarity"]))
-
-            del root
-            #gc.collect()
+            drs = DocumentSectionRelations({})
+            print("Counting...")
+            nr_of_relations = functions.count_elements( file, "srcdoc")
+            with tqdm(total=nr_of_relations, desc="Reading relations") as progress:
+                for src_doc in functions.iterate_xml( file):
+                    for dest_doc in src_doc:
+                        dest = drs.add( src_doc.attrib["id"], dest_doc.attrib["id"], float(dest_doc.attrib["similarity"]) )
+                        for section in dest_doc:
+                            dest.add_section( section.attrib["src"], section.attrib["dest"], float( section.attrib["similarity"]))
+                    progress.update()
 
             functions.write_pickle( file, drs)
+        else:
+            drs = DocumentSectionRelations( drs)
 
         return drs
 

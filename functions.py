@@ -236,8 +236,8 @@ def write_pickle( file, data ):
     :return:
     """
 
-    # with open( __determine_pickle_filename(file) , "wb") as pickle_file:
-    #     pickle.dump( data, pickle_file)
+    with open( __determine_pickle_filename(file) , "wb") as pickle_file:
+        pickle.dump( data, pickle_file)
 
 
 def read_from_pickle( file):
@@ -248,12 +248,47 @@ def read_from_pickle( file):
     """
 
 
-    # pickle_name = __determine_pickle_filename(file)
-    # # Pickl file is newer than xml-file
-    # if os.path.exists( pickle_name) and os.path.getctime( file) < os.path.getctime( pickle_name):
-    #     with open(file, "rb") as pickle_file:
-    #         return pickle.load(pickle_file)
-    # else:
-    #     return None
+    pickle_name = __determine_pickle_filename(file)
+    # Pickl file is newer than xml-file
+    if os.path.exists( pickle_name) and os.path.getmtime( file) < os.path.getmtime( pickle_name):
+        with open(pickle_name, "rb") as pickle_file:
+            return pickle.load(pickle_file)
+    else:
+        return None
 
-    return None
+
+def count_elements(xml_file, element):
+    """
+    Count the occurences of elements in the Xml file
+    :param xml_file:
+    :param element:
+    :return:
+    """
+
+    open_without_attributes = f"<{element}>"
+    open_with_attributes = f"<{element} "
+    count = 0
+    with open(xml_file, 'r') as file:
+        for line in file:
+            count += line.count(open_without_attributes) + line.count(open_with_attributes)
+
+    return count
+
+
+def iterate_xml(xmlfile):
+    """
+    Iterate the Xml file (copied from https://stackoverflow.com/questions/9856163/using-lxml-and-iterparse-to-parse-a-big-1gb-xml-file)
+    the element of level 2 is used. Not the whole file is read into memory
+    :param xmlfile:
+    :return:
+    """
+    doc = ET.iterparse(xmlfile, events=('start', 'end'))
+    _, root = next(doc)
+    start_tag = None
+    for event, element in doc:
+        if event == 'start' and start_tag is None:
+            start_tag = element.tag
+        if event == 'end' and element.tag == start_tag:
+            yield element
+            start_tag = None
+            root.clear()

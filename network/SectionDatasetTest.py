@@ -22,10 +22,8 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         super(SectionDatasetTest).__init__()
 
         self.device = device
-        # if not os.path.isfile( cache_file):
-        #     self.__fill_cache( cache_file,  set_size)
-
-        self.__fill_cache( cache_file,  set_size)
+        if not os.path.isfile( cache_file):
+            self.__fill_cache( cache_file,  set_size)
 
         self.data = self.__read_from_cache( cache_file)
 
@@ -51,13 +49,7 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
             # Add a tuple X, Y, title, pair
             rows.append( (list(vector), 1.0 if equal else 0.0, title, title))
 
-        data = ([], [], [], [])
-        for row in rows:
-            data[0].append( row[0])
-            data[1].append(row[1])
-            data[2].append(row[2])
-            data[3].append(row[3])
-
+        random.shuffle(rows)
         self.__save_in_pickle(rows, file)
 
 
@@ -89,38 +81,4 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         ...
         return iter(self.data)
 
-    def __len__(self):
-        """
-        Standard functions that returns the number of documentpairs
-        :return:
-        """
-
-        return len(self.data)
-
-
-    def __getitem__(self, idx):
-        """
-        Get the i-th item from the dataset
-        :param idx:
-        :return:
-        """
-
-        return( self.data[idx])
-
-    def get_title(self, idx):
-        """
-        Get the (wikipedia)titels as a string
-        :param idx:
-        :return:
-        """
-        return self.data[idx][2]
-
-
-    def get_pair(self, idx):
-        """
-        Get the ids that form the pair as a string
-        :param idx:
-        :return:
-        """
-        return self.data[idx][3]
 

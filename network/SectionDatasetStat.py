@@ -1,7 +1,9 @@
 # Class implements a dataset for corpus files with statistical information. It uses a cache
 import pickle
 import torch
+import random
 import torch.utils.data
+from tqdm import tqdm
 
 from Distances.DocumentRelations import DocumentRelations
 from texts.corpus import Corpus
@@ -13,13 +15,12 @@ from statistics import mean
 
 class SectionDatasetStat(torch.utils.data.IterableDataset):
 
-    def __init__(self, device, corpus_dir, dataset, relationsfile, top_threshold, cache_file):
+    def __init__(self, device, corpus_dir, relations_file, top_threshold, cache_file):
         """
         :param device: the device to put the tensors on
         :param corpus_dir: the directory with the corpus containing the document pairs
-        :param dataset: can either be 'train' or 'validation'
         :param top_threshold: The threshold to be considered the top of the document
-        :param relationsfile: the xml file containing the relations between the documents
+        :param relations_file: the xml file containing the relations between the documents
         :param cache_file: The cachefile containing a cached version of the similarity graph
         """
 
@@ -28,28 +29,11 @@ class SectionDatasetStat(torch.utils.data.IterableDataset):
         self.device = device
         self.top_threshold = top_threshold
         if not os.path.isfile( cache_file):
-            self.__fill_cache( cache_file, Corpus(directory=corpus_dir),  relationsfile)
+            self.__fill_cache(cache_file, Corpus(directory=corpus_dir), relations_file)
 
-        (all_data, all_labels, all_titles, all_pairs) = self.__read_from_cache( cache_file)
+        self.data = self.__read_from_cache( cache_file)
 
-        validation_start = len( all_data) -int( len(all_data) / 10)
-        if dataset.lower() == 'train':
-            start_index = 0
-            end_index = validation_start
-        elif dataset.lower() == 'validation':
-            start_index = validation_start + 1
-            end_index = len(all_data) - 1
-        else:
-            raise f"Unknown dataset {dataset} only 'train' or 'validation' are allowed"
 
-        self.data = []
-        self.titles = []
-        self.pairs = []
-        self.combi = []
-        for i in range( start_index, end_index + 1):
-            self.data.append([torch.tensor( all_data[i], dtype=torch.float32, device=self.device), torch.tensor( all_labels[i], dtype=torch.float32, device=self.device)])
-            self.titles.append( all_titles[i])
-            self.pairs.append( all_pairs[i])
 
     def __fill_cache(self, file, corpus, relationsfile):
         """
@@ -58,46 +42,41 @@ class SectionDatasetStat(torch.utils.data.IterableDataset):
         :param relationsfile: the xml file containing the relations between the documents
         """
 
-        labels = []
         rows = []
-        titles = []
-        pairs = []
 
-        nr_of_0_vectors = 0
+        print("Reading document relations")
         dsr = DocumentSectionRelations.read( relationsfile)
-        for pair in corpus.read_document_pairs( True):
-            src = pair.get_src()
-            dest = pair.get_dest()
+        print("Reading document pairs")
+        pairs = corpus.read_document_pairs( True)
+        with tqdm(total=len( pairs), desc="Creating stat vectors") as progress:
+            for pair in pairs:
+                src = pair.get_src()
+                dest = pair.get_dest()
 
-            # Search for source or destination
-            sections = dsr.get_section_relations( pair.get_src(), pair.get_dest())
-            if len(sections) != 0:
-                sections = dsr.get_section_relations(pair.get_dest(), pair.get_src())
+                # Search for source or destination
+                sections = dsr.get_section_relations( pair.get_src(), pair.get_dest())
+                if len(sections) != 0:
+                    sections = dsr.get_section_relations(pair.get_dest(), pair.get_src())
 
-            if len(sections) != 0:
-                src_doc = corpus.getDocument(src)
-                dest_doc = corpus.getDocument(dest)
-                nrof_src_sections  = float(src_doc.get_nrof_sections())
-                nrof_dest_sections = float(dest_doc.get_nrof_sections())
-                total_nrof_src_sections = nrof_src_sections + nrof_dest_sections
-                avg_count = float(len(sections)) / total_nrof_src_sections;
-                avg_score = mean( [sect.get_similarity() for sect in sections])
-                top_src_score = sum( [1.0 for sect in sections if self.is_top_section( sect.get_src_place(), nrof_src_sections )]  ) / total_nrof_src_sections
-                top_dest_score = sum( [1.0 for sect in sections if self.is_top_section( sect.get_dest_place(), nrof_dest_sections )] ) / total_nrof_src_sections
-                vector = [avg_count, avg_score, top_src_score, top_dest_score]
-            else:
-                nr_of_0_vectors += 1
-                vector = [0.0, 0.0, 0.0, 0.0]
+                if len(sections) != 0:
+                    src_doc = corpus.getDocument(src)
+                    dest_doc = corpus.getDocument(dest)
+                    nrof_src_sections  = float(src_doc.get_nrof_sections())
+                    nrof_dest_sections = float(dest_doc.get_nrof_sections())
+                    total_nrof_src_sections = nrof_src_sections + nrof_dest_sections
+                    avg_count = float(len(sections)) / total_nrof_src_sections;
+                    avg_score = mean( [sect.get_similarity() for sect in sections])
+                    top_src_score = sum( [1.0 for sect in sections if self.is_top_section( sect.get_src_place(), nrof_src_sections )]  ) / total_nrof_src_sections
+                    top_dest_score = sum( [1.0 for sect in sections if self.is_top_section( sect.get_dest_place(), nrof_dest_sections )] ) / total_nrof_src_sections
+                    vector = [avg_count, avg_score, top_src_score, top_dest_score]
+                else:
+                    vector = [0.0, 0.0, 0.0, 0.0]
 
-            rows.append( list(vector))
-            # titles.append( f"{src_doc.get_title()} --> {dest_doc.get_title()}");
-            titles.append( f"{src} --> {dest} ")
-            pairs.append( f"{src} --> {dest} ")
-            labels.append(pair.get_similarity())
+                rows.append( (list(vector), pair.get_similarity(), f"{src} --> {dest} ", f"{src} --> {dest} "))
+                progress.update()
 
-        print(f"Number of 0 vectors: {nr_of_0_vectors}")
-
-        self.__save_in_pickle(rows, labels, titles, pairs, file)
+        random.shuffle( rows)
+        self.__save_in_pickle(rows, file)
 
 
     def is_top_section(self, place, total_nrof_sections):
@@ -124,12 +103,10 @@ class SectionDatasetStat(torch.utils.data.IterableDataset):
         """
 
         with open(file, "rb") as pickle_file:
-            (data, labels, titles, pairs) = pickle.load(pickle_file)
-
-        return data, labels, titles, pairs
+            return pickle.load(pickle_file)
 
 
-    def __save_in_pickle(self, data, labels, titels, pairs, file):
+    def __save_in_pickle(self, data, file):
         """
         Saves the data and the labels in a pickle file
         :param data:
@@ -138,27 +115,9 @@ class SectionDatasetStat(torch.utils.data.IterableDataset):
         """
 
         with open(file , "wb") as pickle_file:
-            pickle.dump( (data, labels, titels, pairs), pickle_file)
+            pickle.dump( data, pickle_file)
 
 
     def __iter__(self):
         return iter( self.data)
-
-
-    def get_title(self, idx):
-        """
-        Get the (wikipedia)titels as a string
-        :param idx:
-        :return:
-        """
-        return self.titles[idx]
-
-
-    def get_pair(self, idx):
-        """
-        Get the ids that form the pair as a string
-        :param idx:
-        :return:
-        """
-        return self.pairs[idx]
 

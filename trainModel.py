@@ -4,16 +4,13 @@ import argparse
 import math
 import os
 
-import numpy as np
 import torch
-from numpy.random import multivariate_normal
-from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 from tqdm import tqdm
+
 
 import functions
 from network.SectionDataset import SectionDataset
@@ -77,10 +74,10 @@ class NeuralNetworkStat(nn.Module):
         super(NeuralNetworkStat, self).__init__()
 
         self.hidden1 = nn.Linear(N, N)
-        self.dropout1 = nn.Dropout( 0.2)
+        self.dropout1 = nn.Dropout( 0.0)
         self.act1 = nn.ReLU()
         self.hidden2 = nn.Linear(N, N)
-        self.dropout2 = nn.Dropout( 0.2)
+        self.dropout2 = nn.Dropout( 0.0)
         self.act2 = nn.ReLU()
         self.output = nn.Linear(N, 1)
         self.act_output = nn.Sigmoid()
@@ -91,7 +88,7 @@ class NeuralNetworkStat(nn.Module):
         do2 = self.dropout2( x2)
         x_out = self.act_output(self.output(do2))
 
-        return x_out.flatten()
+        return x_out
 
 class NeuralNetworkTest(nn.Module):
     """
@@ -101,16 +98,19 @@ class NeuralNetworkTest(nn.Module):
         super(NeuralNetworkTest, self).__init__()
 
         self.hidden1 = nn.Linear(N, N)
-        # self.dropout1 = nn.Dropout( 0.2)
+        self.dropout1 = nn.Dropout( 0.0)
         self.act1 = nn.ReLU()
-        # self.hidden2 = nn.Linear(N, N)
-        # self.dropout2 = nn.Dropout( 0.2)
-        # self.act2 = nn.ReLU()
+        self.hidden2 = nn.Linear(N, N)
+        self.dropout2 = nn.Dropout( 0.0)
+        self.act2 = nn.ReLU()
         self.output = nn.Linear(N, 1)
         self.act_output = nn.Sigmoid()
     def forward(self, x):
         x1 = self.act1(self.hidden1(x))
-        x_out = self.act_output(self.output(x1))
+        do1 = self.dropout1( x1)
+        x2 = self.act2(self.hidden2(do1))
+        do2 = self.dropout2( x2)
+        x_out = self.act_output(self.output(do2))
 
         return x_out
 
@@ -136,7 +136,7 @@ class NeuralNetworkMask(nn.Module):
         out = self.linear( x)
         return torch.sigmoid( out)
 
-def make_heatmap( X, title, heatmap_dir, filename, predicted, actual):
+def create_heatmap(X, title, heatmap_dir, filename, predicted, actual):
     """
     Create a single heatmap
     :param X:
@@ -218,31 +218,26 @@ def evaluate_the_model( model, X_test, Y_test, nr_of_heatmaps ):
 
 
 
-
 ## Main part
 if __name__ == '__main__':
     (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype, relations_file) = read_arguments()
 
     device = torch.device("cpu")
 
-
     cache_file = os.path.join( cache_dir, f"dataset_{N}_{nntype}.pkl")
     if( nntype=="test"):
         ds = SectionDatasetTest(device=device, set_size=5000, cache_file=cache_file)
     elif (nntype == "stat"):
         threshold = 0.3
-        train_ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, dataset='train',
-                                      relationsfile=relations_file, top_threshold=threshold, cache_file=cache_file)
-        validation_ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, dataset='validation',
-                                           relationsfile=relations_file, top_threshold=threshold,
-                                           cache_file=cache_file)
+        ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, relations_file=relations_file, top_threshold=threshold, cache_file=cache_file)
     else:
-        train_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir, dataset='train',
+        train_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir,
                                   documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype,
                                   cache_file=cache_file)
-        validation_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir, dataset='validation',
+        validation_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir,
                                    documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype,
                                    cache_file=cache_file)
+
 
     X = torch.tensor( [data[0] for data in ds], dtype=torch.float32, device=device)
     Y = torch.tensor( [[data[1]] for data in ds], dtype=torch.float32, device=device)

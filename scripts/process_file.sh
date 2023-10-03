@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Processes a single file usage: process_file <corpus> <encoding method> [<Sim>] [<MaxDoc>] [NearestNeighbours] [<NrOfSecions>]
+# Processes a single file usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]
 
 BASEDIR=/Volumes/Extern/Studie/studie
 HTMLDIR="${BASEDIR}/html"
@@ -12,9 +12,16 @@ OUTDIR=/Volumes/Extern/Studie/studie/vectors
 source $VENVDIR/activate
 cd $CURRENT
 
-# Read the arguments
-CORPUS=$1
-METHOD=$2
+zmodload zsh/zutil
+zparseopts -D -F c:=corpus_val -method:=method_val -sim:=sim_val -maxdoc=maxdoc_val -nn=nn_val -sections=nrofsections_val || (echo "Usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]"; exit 1)
+
+CORPUS=${corpus_val[-1]}
+METHOD=${method_val[-1]}
+SIM=${sim_val[-1]}
+MAXDOC=${maxdoc_val[-1]}
+NEARESTNEIGHBORS=${nn_val[-1]}
+NROFSECTIONS=${nrofsections_val[-1]}
+
 
 if [ "$CORPUS" = "" ]; then
   echo "Please provide a corpus"
@@ -34,34 +41,24 @@ if [ "$METHOD" != "word2vec" ]  && [ "$METHOD" != "sent2vec" ]  && [ "$METHOD" !
   exit 3
 fi
 
-if [ "$3" = "" ]; then
+if [ "$SIM" = "" ]; then
   SIM=60
   echo "SIM was not specified, a value of ${SIM} is used"
-else
-  SIM=$3
 fi
 
-if [ "$4" = "" ]; then
+if [ "$MAXDOC" = "" ]; then
   MAXDOC=20
   echo "MaxDoc was not specified, a value of ${MAXDOC} is used"
-else
-  MAXDOC=$4
 fi
 
-if [ "$5" = "" ]; then
+if [ "$NEARESTNEIGHBORS" = "" ]; then
   NEARESTNEIGHBORS=10
   echo "NearestNeighbours was not specified, a value of ${NEARESTNEIGHBORS} is used"
-else
-  NEARESTNEIGHBORS=$5
 fi
 
-if [ "$6" = "" ]; then
+if [ "$NROFSECTIONS" = "" ]; then
   NROFSECTIONS=12
   echo "NrOfSection was not specified, a value of ${NROFSECTIONS} is used"
-else
-  NROFSECTIONS=$6
-fi
-
 
 echo $SIM
 echo $MAXDOC
