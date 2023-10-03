@@ -90,8 +90,9 @@ class DocumentRelations:
         :return: Tuple (DocumentVectors object, attributes dictionary)
         """
 
-        data = functions.read_from_pickle( file)
-        if data is None:
+        dr = functions.read_from_pickle( file, "dr")
+        attr = functions.read_from_pickle( file, "attr")
+        if dr is None or attr is None:
             dr = DocumentRelations([])
             root = ET.parse(file).getroot()
             for document in root:
@@ -103,12 +104,11 @@ class DocumentRelations:
             # copy the attributes
             attr = {}
             for name in root.attrib:
-                attr[name] = root.attrib[name]
+                attr[name] = str(root.attrib[name])
 
             functions.write_pickle( file, { "dr":dr, "attr": attr})
         else:
-            dr = DocumentRelations(data["dr"])
-            attr = data["attr"]
+            if type(dr).__name__ == 'list': dr = DocumentRelations(dr)
 
         return (dr, attr)
 

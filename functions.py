@@ -219,28 +219,34 @@ def copy_dir( src_dir, dest_dir):
             shutil.copy(source, destination)
 
 
-def __determine_pickle_filename(file):
+def __determine_pickle_filename(file, suffix):
     """
     Determine the filename used for the pickl
     :param file:
+    :param suffix: an optional suffix
     :return:
     """
-    return os.path.splitext(file)[0] + ".pkl"
+
+    base = os.path.splitext(file)[0]
+    if not suffix is None:
+        base += "_" + suffix
+    return  base + ".pkl"
 
 
-def write_pickle( file, data ):
+def write_pickle( file, data, suffix=None):
     """
     Write to a pickle file
     :param file:
     :param data:
+    :param suffix: optional suffix
     :return:
     """
 
-    with open( __determine_pickle_filename(file) , "wb") as pickle_file:
+    with open( __determine_pickle_filename(file, suffix) , "wb") as pickle_file:
         pickle.dump( data, pickle_file)
 
 
-def read_from_pickle( file):
+def read_from_pickle( file, suffix=None):
     """
     Read the data from a pickle file if it is newer than the original file
     :param file:
@@ -248,7 +254,7 @@ def read_from_pickle( file):
     """
 
 
-    pickle_name = __determine_pickle_filename(file)
+    pickle_name = __determine_pickle_filename(file, suffix)
     # Pickl file is newer than xml-file
     if os.path.exists( pickle_name) and os.path.getmtime( file) < os.path.getmtime( pickle_name):
         with open(pickle_name, "rb") as pickle_file:

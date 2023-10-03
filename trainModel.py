@@ -35,14 +35,16 @@ def read_arguments():
     parser.add_argument('-r', '--relationsfile', help='The xml file containing the relations between the documents', required=False)
     parser.add_argument('-m', '--heatmap_dir', help='The directory containing the images with the heatmaps', required=True)
     parser.add_argument('-t', '--transformation', help='The transformation to apply to sections with an index larger than N', required=F, choices=['truncate', 'avg'])
+    parser.add_argument('-o', '--results_dir', help='The director containing the results', required=True)
 
     args = vars(parser.parse_args())
 
     os.makedirs( args["cache_dir"], exist_ok=True)
+    os.makedirs( args["results_dir"], exist_ok=True)
     if os.path.exists( args["heatmap_dir"]):
         functions.remove_redirectory_recursivly(args["heatmap_dir"])
 
-    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"], args["neuralnetworktype"].lower(), args["relationsfile"])
+    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"], args["neuralnetworktype"].lower(), args["relationsfile"], args["results_dir"])
 
 class NeuralNetworkPlain(nn.Module):
     """
@@ -163,7 +165,7 @@ def create_heatmap(X, title, heatmap_dir, filename, predicted, actual):
     plt.savefig( os.path.join(dir ,filename))
 
 
-def evaluate_the_model( model, Y, X_test, nr_of_heatmaps ):
+def evaluate_the_model( model, Y, X_test, latest_loss, results_file, nr_of_heatmaps ):
     """
     Make an evaluation of the model
     :param model:
@@ -228,19 +230,25 @@ def evaluate_the_model( model, Y, X_test, nr_of_heatmaps ):
         elif y_pred[i] and not y_act[i]: fp += 1
         elif not y_pred[i] and y_act[i]: fn += 1
 
+    readable = f"Accuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}\nLatest loss: {latest_loss}"
+    tsv =f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}\t{latest_loss}"
+    print( readable)
+    print( tsv)
 
-    print(f"Accuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}")
-    print(f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}")
+    functions.write_file(results_file + ".txt", readable)
+    functions.write_file(results_file + ".tsv", tsv)
 
 
 
 ## Main part
 if __name__ == '__main__':
-    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype, relations_file) = read_arguments()
+    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype, relations_file, output_dir) = read_arguments()
 
     device = torch.device("cpu")
 
     cache_file = os.path.join( cache_dir, f"dataset_{N}_{nntype}.pkl")
+    results_file = os.path.join( output_dir, f"results_{os.path.basename(relations_file).split('.')[0]}_{N}_{nntype}")
+
     if( nntype=="test"):
         ds = SectionDatasetTest(device=device, set_size=5000, cache_file=cache_file)
     elif (nntype == "stat"):
@@ -276,7 +284,7 @@ if __name__ == '__main__':
     # parameters
     batch_size = 100
     n_epochs = 100
-    learning_rate = 0.01
+    learning_rate = 0.1
     nr_of_heatmaps = 0
     batches_per_epoch = len(X_train) // batch_size
 
@@ -322,17 +330,17 @@ if __name__ == '__main__':
 
         epoch_loss.append( loss.item())
 
-        # evaluate_the_model(model=model, validation_ds=validation_ds, nr_of_heatmaps=nr_of_heatmaps)
         losses.append( epoch_loss)
+        latest_loss = epoch_loss
         print(f'Finished epoch {epoch}, latest loss {epoch_loss}')
 
     # Plot the loss graph.
-    plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.show()
+    # plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.show()
 
-    evaluate_the_model(model=model, X_test=X_test, Y=Y_test, nr_of_heatmaps=nr_of_heatmaps)
+    evaluate_the_model(model=model, X_test=X_test, Y=Y_test, latest_loss=latest_loss, results_file=results_file, nr_of_heatmaps=nr_of_heatmaps)
 
 
 

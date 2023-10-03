@@ -103,7 +103,8 @@ class DocumentVectors:
             del root
 
         else:
-            dv = dv
+            if type(dv).__name__ == 'dict': dv = DocumentVectors(dv)
+
         return dv
 
 

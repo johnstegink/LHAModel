@@ -7,7 +7,7 @@ NROFSECTIONS=12
 NEARESTNEIGHBORS=10
 CURRENT=`pwd`
 VENVDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Code/LHA/py/bin
-OUTDIR=/Volumes/Extern/Studie/studie/vectors
+RESULTSDIR=/Volumes/Extern/Studie/studie/results
 
 source $VENVDIR/activate
 cd $CURRENT
@@ -102,6 +102,6 @@ fi
 HEATMAPDIR="${BASEDIR}/heatmaps/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}"
 SCRATCHDIR="${BASEDIR}/scratch/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}"
 
-echo "-N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t "truncate""
+echo "-N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t "truncate" -o ${RESULTSDIR}"
 echo "..."
-$VENVDIR/python trainModel.py -N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t "truncate"
+$VENVDIR/python trainModel.py -N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t "truncate" -o $RESULTSDIR

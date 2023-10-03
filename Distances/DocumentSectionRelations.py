@@ -103,7 +103,7 @@ class DocumentSectionRelations:
 
             functions.write_pickle( file, drs)
         else:
-            drs = DocumentSectionRelations( drs)
+            if type(drs).__name__ == 'dict': drs = DocumentSectionRelations(drs)
 
         return drs
 
