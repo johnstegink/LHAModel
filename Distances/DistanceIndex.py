@@ -46,7 +46,7 @@ class DistanceIndex:
         :return: a object with document relations
         """
 
-        dr = DocumentRelations()
+        dr = DocumentRelations([])
         index_to_compare_to = second_index if not second_index is None else self
 
         for dv in self.documentvectors:
@@ -78,7 +78,7 @@ class DistanceIndex:
         vec1 = self.documentvectors.get_numpy_dict()
         vec2 = second_index.documentvectors.get_numpy_dict() if not second_index is None else self
 
-        dr = DocumentRelations()
+        dr = DocumentRelations([])
         with tqdm(total=len(vec1.keys()), desc="Distance calculation") as progress:
             for src_id in vec1.keys():
                 sims = []
@@ -115,7 +115,7 @@ class DistanceIndex:
         sims = orgsims
         last_sim_row = sims.shape[1]
 
-        dr = DocumentRelations()
+        dr = DocumentRelations([])
         for i1 in range(0, len(docids1)):
             sorted = np.argsort( sims[i1]).tolist()
             sorted.reverse() # We want to order descending

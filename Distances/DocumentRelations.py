@@ -7,8 +7,8 @@ import html
 import functions
 
 class DocumentRelations:
-    def __init__(self):
-        self.relations = []
+    def __init__(self, relations):
+        self.relations = relations
         self.is_dirty = True
 
     def add(self, src, dest, similarity):
@@ -92,7 +92,7 @@ class DocumentRelations:
 
         data = functions.read_from_pickle( file)
         if data is None:
-            dr = DocumentRelations()
+            dr = DocumentRelations([])
             root = ET.parse(file).getroot()
             for document in root:
                 src = document.find("src").text
@@ -105,10 +105,10 @@ class DocumentRelations:
             for name in root.attrib:
                 attr[name] = root.attrib[name]
 
-            functions.write_pickle( file, (dr, attr))
+            functions.write_pickle( file, { "dr":dr, "attr": attr})
         else:
-            (dr, attr) = data
-
+            dr = DocumentRelations(data["dr"])
+            attr = data["attr"]
 
         return (dr, attr)
 

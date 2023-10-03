@@ -13,7 +13,7 @@ source $VENVDIR/activate
 cd $CURRENT
 
 zmodload zsh/zutil
-zparseopts -D -F c:=corpus_val -method:=method_val -sim:=sim_val -maxdoc=maxdoc_val -nn=nn_val -sections=nrofsections_val || (echo "Usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]"; exit 1)
+zparseopts -D -F c:=corpus_val m:=method_val s:=sim_val d:=maxdoc_val n:=nn_val t:=nrofsections_val || (echo "Usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]"; exit 1)
 
 CORPUS=${corpus_val[-1]}
 METHOD=${method_val[-1]}
@@ -59,6 +59,7 @@ fi
 if [ "$NROFSECTIONS" = "" ]; then
   NROFSECTIONS=12
   echo "NrOfSection was not specified, a value of ${NROFSECTIONS} is used"
+fi
 
 echo $SIM
 echo $MAXDOC
@@ -89,7 +90,7 @@ fi
 
 # create the section relations if they do not exist
 SECTIONSFILE="${BASEDIR}/sections/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}.xml"
-echo "$VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS -d $HTMLDIR"
+echo "$VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS # -d $HTMLDIR"
 echo "..."
 
 if [ ! -f "$SECTIONSFILE" ]; then

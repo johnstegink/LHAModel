@@ -9,8 +9,8 @@ import functions
 import re
 
 class DocumentVectors:
-    def __init__(self):
-        self.vectors = {}
+    def __init__(self, vectors):
+        self.vectors = vectors
 
     def add(self, documentid, vector):
         """
@@ -86,7 +86,7 @@ class DocumentVectors:
 
         dv = functions.read_from_pickle(file)
         if dv is None:
-            dv = DocumentVectors()
+            dv = DocumentVectors({})
             root = ET.parse(file).getroot()
             for document in root:
                 id = document.find("id").text
@@ -101,7 +101,9 @@ class DocumentVectors:
             functions.write_pickle( file, dv)
 
             del root
-            #gc.collect()
+
+        else:
+            dv = dv
         return dv
 
 

@@ -4,6 +4,7 @@ import argparse
 import math
 import os
 
+import sklearn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -162,59 +163,74 @@ def create_heatmap(X, title, heatmap_dir, filename, predicted, actual):
     plt.savefig( os.path.join(dir ,filename))
 
 
-def evaluate_the_model( model, X_test, Y_test, nr_of_heatmaps ):
+def evaluate_the_model( model, Y, X_test, nr_of_heatmaps ):
     """
     Make an evaluation of the model
     :param model:
-    :param X_test:
-    :param Y_test:
+    :param y:
+    :param x_test:
     :return:
     """
-    # Evaluate the model
-    correct = 0.0
-    fp = 0.0
-    tp = 0.0
-    fn = 0.0
-    total = len(X_test)
-    with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
-        for i in range(0, total):
 
-            X = X_test[i]
-            Y = Y_test[i]
-            prediction = 1 if model(X) >= 0.5 else 0
+    # change the y_pred to 0 or 1
+    y_pred = [True if model( x) >= 0.5 else False for x in X_test]
+    y_act = [True if y >= 0.5 else False for y in Y]
 
-            if prediction == 0 and int(Y) == 1:
-                fp += 1.0
+    (precision, recall, F1, _) =sklearn.metrics.precision_recall_fscore_support( y_act, y_pred, average="binary")
+    accuracy = sklearn.metrics.accuracy_score( y_act, y_pred)
 
-            elif prediction == 1 and int(Y) == 1:
-                correct += 1.0
-                tp += 1.0
+    # correct = 0.0
+    # fp = 0.0
+    # tp = 0.0
+    # fn = 0.0
+    # total = len(X_test)
+    # with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
+    #     for i in range(0, total):
+    #
+    #         X = X_test[i]
+    #         Y = Y_test[i]
+    #         prediction = 1 if model(X) >= 0.5 else 0
+    #
+    #         if prediction == 0 and int(Y) == 1:
+    #             fp += 1.0
+    #
+    #         elif prediction == 1 and int(Y) == 1:
+    #             correct += 1.0
+    #             tp += 1.0
+    #
+    #         elif prediction == 0 and int(Y) == 1:
+    #             fn += 1.0
+    #
+    #         if int(prediction) == int(Y):
+    #             correct += 1.0
+    #
+    #         if nr_of_heatmaps > 0:
+    #             equal = int(Y)
+    #             title = validation_ds.get_title(i) + " "
+    #             title += "(Equal)" if equal else "(NOT equal)"
+    #
+    #             filename = validation_ds.get_pair(i) + ".png"
+    #             # make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
+    #
+    #             nr_of_heatmaps -= 1
+    #             progress.update()
+    #
+    # # Print the accuracy
+    # if tp > 0:
+    #     recall = tp / (tp + fn)
+    #     precision = tp / (tp + fp)
+    #     F1 = (2 * recall * precision) / (recall + precision)
+    #     accuracy = int((correct / total) * 100)
 
-            elif prediction == 0 and int(Y) == 1:
-                fn += 1.0
+    tp = fp = fn = 0
+    for i in range(0, len(y_pred)):
+        if y_pred[i] and y_act[i] : tp += 1
+        elif y_pred[i] and not y_act[i]: fp += 1
+        elif not y_pred[i] and y_act[i]: fn += 1
 
-            if int(prediction) == int(Y):
-                correct += 1.0
 
-            if nr_of_heatmaps > 0:
-                equal = int(Y)
-                title = validation_ds.get_title(i) + " "
-                title += "(Equal)" if equal else "(NOT equal)"
-
-                filename = validation_ds.get_pair(i) + ".png"
-                # make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
-
-                nr_of_heatmaps -= 1
-                progress.update()
-
-    # Print the accuracy
-    if tp > 0:
-        recall = tp / (tp + fn)
-        precision = tp / (tp + fp)
-        F1 = (2 * recall * precision) / (recall + precision)
-        accuracy = int((correct / total) * 100)
-        print(f"Accuracy: {accuracy}%\ntp: {tp}, \nfp:{fp}\nF1:{F1}\nPrecision: {precision}\nRecall: {recall}")
-        print(f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}")
+    print(f"Accuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}")
+    print(f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}")
 
 
 
@@ -258,8 +274,8 @@ if __name__ == '__main__':
 
 
     # parameters
-    batch_size = 10
-    n_epochs = 50
+    batch_size = 100
+    n_epochs = 100
     learning_rate = 0.01
     nr_of_heatmaps = 0
     batches_per_epoch = len(X_train) // batch_size
@@ -271,7 +287,7 @@ if __name__ == '__main__':
     elif nntype == "masked":
         model = NeuralNetworkMask(N)
     elif nntype == "stat":
-        model = NeuralNetworkStat(4)
+        model = NeuralNetworkTest(4)
     elif nntype == "test":
         model = NeuralNetworkTest(4)
     else:
@@ -316,7 +332,7 @@ if __name__ == '__main__':
     plt.ylabel('Loss')
     plt.show()
 
-    evaluate_the_model(model=model, X_test=X_test, Y_test=Y_test, nr_of_heatmaps=nr_of_heatmaps)
+    evaluate_the_model(model=model, X_test=X_test, Y=Y_test, nr_of_heatmaps=nr_of_heatmaps)
 
 
 

@@ -182,7 +182,7 @@ class Corpus:
         :return: Documentrelations object
         """
 
-        dv = DocumentRelations()
+        dv = DocumentRelations([])
         pairs = functions.read_article_pairs( self.directory)
         if shuffled: random.shuffle( pairs)
 
