@@ -47,6 +47,7 @@ class DocumentRelations:
             ET.SubElement(document, "similarity").text = str(relation.get_similarity())
 
             file.write( functions.xml_as_string(document))
+            del document
 
         # Write the end of the file
         file.write("</relations>\n")

@@ -78,6 +78,7 @@ class DocumentSectionRelations:
                     ET.SubElement( dest_doc_node, "section", attrib={"src": sect_relation.get_src(), "dest": sect_relation.get_dest(), "similarity": str( sect_relation.get_similarity())})
 
             file.write( functions.xml_as_string(src_doc_node))
+            del src_doc_node
 
         # Write the end of the file
         file.write("</sectionrelations>\n")

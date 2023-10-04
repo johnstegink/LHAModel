@@ -72,7 +72,8 @@ class DocumentVectors:
                 for (section_index, section_vector) in vector.get_sections():
                     ET.SubElement(sections, "section", attrib={"index": str(section_index)}).text = ",".join([str(value) for value in section_vector])
 
-            file.write( functions.xml_as_string(document))
+                file.write( functions.xml_as_string(document))
+                del document
 
 
         # Write the end of the file
