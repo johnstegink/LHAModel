@@ -1,6 +1,16 @@
 #!/bin/zsh
 # Processes all files
 
+SESSIONS_DIR="/Volumes/Extern/Studie/studie/sessions"
+
+CURRENT=`pwd`
+VENVDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Code/LHA/py/bin
+
+source $VENVDIR/activate
+cd $CURRENT
+
+mkdir -p $SESSIONS_DIR
+
 for language in en nl
 do
   for corpus in wikisim wire gWikimatch
@@ -15,8 +25,22 @@ do
           do
             for sections in 9 12
             do
-              echo "${corpus} ${language} ${method} ${sim} ${maxdoc} ${nn} ${sections}"
-              scripts/process_file.sh -c "${corpus}_${language}" -m $method -s $sim -d $maxdoc -n $nn -t $sections
+              combined="${language}_${corpus}_${method}_${sim}_${maxdoc}_${nn}_${sections}"
+
+              # make sure the same is not run twice
+              SESSION_FILE="${SESSIONS_DIR}/${combined}.ses"
+              if [ ! -f $SESSION_FILE ]; then
+                echo $combined
+
+                scripts/process_file.sh -c "${corpus}_${language}" -m $method -s $sim -d $maxdoc -n $nn -t $sections
+                if [ $? = 0 ]; then
+                  date "+%d-%m-%y %H:%M:%S" > $SESSION_FILE
+                else
+                  echo "Error during excecution ${?}"
+                fi
+              else
+                echo "${combined} has already been generated"
+              fi
             done
           done
         done
@@ -24,3 +48,5 @@ do
     done
   done
 done
+
+py

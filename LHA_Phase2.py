@@ -216,7 +216,7 @@ if __name__ == '__main__':
                 progress.update()
 
     dsr.save(output)
-    if not htmldir is None:
+    if not htmldir is None and not htmldir=="":
         print("creating html...")
         create_htmls( dsr, corpus, htmldir)
 

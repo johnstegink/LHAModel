@@ -49,18 +49,20 @@ class DocumentVectors:
 
 
 
-    def save(self, file):
+    def save(self, filename):
         """
         Save the vectors in the given Xml file
         :param file:the output file
         :return:
         """
 
-        root = ET.fromstring("<documents></documents>")
+        file = open(filename, mode="w", encoding="utf-8-sig")
+        file.write("<documents>\n")
+
         for vector in self.vectors.values():
             vectorValue = vector.get_vector()
             if hasattr(vectorValue, '__iter__'):
-                document = ET.SubElement(root, "document")
+                document = ET.fromstring("<document></document>")
                 ET.SubElement(document, "id").text = vector.get_id()
                 # Comma seperated vector
                 ET.SubElement(document, "vector").text = ",".join([str(value) for value in vectorValue])
@@ -70,9 +72,15 @@ class DocumentVectors:
                 for (section_index, section_vector) in vector.get_sections():
                     ET.SubElement(sections, "section", attrib={"index": str(section_index)}).text = ",".join([str(value) for value in section_vector])
 
+            file.write( functions.xml_as_string(document))
+
+
+        # Write the end of the file
+        file.write("</documents>\n")
+        file.close()
+
         # Write the file
-        functions.write_file( file, functions.xml_as_string(root))
-        functions.write_pickle(file, self.vectors)
+        functions.write_pickle(filename, self.vectors)
 
 
     @staticmethod

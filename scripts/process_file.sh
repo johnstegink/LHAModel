@@ -7,7 +7,13 @@ NROFSECTIONS=12
 NEARESTNEIGHBORS=10
 CURRENT=`pwd`
 VENVDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Code/LHA/py/bin
-RESULTSDIR=/Volumes/Extern/Studie/studie/results
+RESULTSDIR="${BASEDIR}/html"
+FINAL_DIR="${BASEDIR}/final"
+FINAL_FILE="together.xlsx"
+
+
+mkdir -p $FINAL_DIR
+mkdir -p $RESULTSDIR
 
 source $VENVDIR/activate
 cd $CURRENT
@@ -22,6 +28,10 @@ MAXDOC=${maxdoc_val[-1]}
 NEARESTNEIGHBORS=${nn_val[-1]}
 NROFSECTIONS=${nrofsections_val[-1]}
 
+TRAPERR() {
+  echo "Error during execution of script";
+  exit $?;
+}
 
 if [ "$CORPUS" = "" ]; then
   echo "Please provide a corpus"
@@ -89,19 +99,25 @@ else
 fi
 
 # create the section relations if they do not exist
-SECTIONSFILE="${BASEDIR}/sections/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}.xml"
+SECTIONSFILE="${BASEDIR}/sections/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}.xml"
 echo "$VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS # -d $HTMLDIR"
 echo "..."
 
 if [ ! -f "$SECTIONSFILE" ]; then
-  $VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS -d $HTMLDIR
+  $VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS # -d $HTMLDIR
 else
   echo "  -- ${SECTIONSFILE} already exists"
 fi
 
-HEATMAPDIR="${BASEDIR}/heatmaps/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}"
-SCRATCHDIR="${BASEDIR}/scratch/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}"
+HEATMAPDIR="${BASEDIR}/heatmaps/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}"
+SCRATCHDIR="${BASEDIR}/scratch/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}"
 
-echo "-N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t "truncate" -o ${RESULTSDIR}"
+echo "-N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o ${RESULTSDIR}"
 echo "..."
-$VENVDIR/python trainModel.py -N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t "truncate" -o $RESULTSDIR
+$VENVDIR/python trainModel.py -N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o $RESULTSDIR
+
+echo "$VENVDIR/python results.py -d $RESULTSDIR -t excel -o ${FINAL_DIR}/${FINAL_FILE}"
+echo "..."
+$VENVDIR/python results.py -d $RESULTSDIR -t excel -o "${FINAL_DIR}/${FINAL_FILE}"
+
+exit 0

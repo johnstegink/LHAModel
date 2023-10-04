@@ -59,25 +59,31 @@ class DocumentSectionRelations:
         return []       # No relations
 
 
-    def save(self, file):
+    def save(self, filename):
         """
         Save the relations in the given Xml file
-        :param file:the output file
+        :param filename:the output file
         :return:
         """
 
-        root = ET.fromstring("<sectionrelations></sectionrelations>")
+        file = open(filename, mode="w", encoding="utf-8-sig")
+        file.write("<sectionrelations>\n")
 
         for src_doc in self.relations.keys():
-            src_doc_node = ET.SubElement(root, "srcdoc", attrib={"id": src_doc})
+            src_doc_node = ET.fromstring("<srcdoc></srcdoc>")
+            src_doc_node.attrib["id"] = src_doc
             for dest_doc in self.relations[src_doc]:
                 dest_doc_node = ET.SubElement(src_doc_node, "destdoc", attrib={"id": dest_doc.get_dest(), "similarity" : str(dest_doc.get_similarity())})
                 for sect_relation in dest_doc.get_relations():
                     ET.SubElement( dest_doc_node, "section", attrib={"src": sect_relation.get_src(), "dest": sect_relation.get_dest(), "similarity": str( sect_relation.get_similarity())})
 
-        # Write the file
-        functions.write_file( file, functions.xml_as_string(root))
-        functions.write_pickle( file, self.relations)
+            file.write( functions.xml_as_string(src_doc_node))
+
+        # Write the end of the file
+        file.write("</sectionrelations>\n")
+        file.close()
+
+        functions.write_pickle(filename, self.relations)
 
 
     @staticmethod

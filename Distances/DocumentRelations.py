@@ -24,28 +24,36 @@ class DocumentRelations:
         self.is_dirty = True
 
 
-    def save(self, file, parameters):
+    def save(self, filename, parameters):
         """
         Save the relations in the given Xml file, the params are added ass attributes to the root node
-        :param file:the output file
+        :param filename:the output file
         :param parameters: dictionary of parameters
         :return:
         """
+
+        file = open(filename, mode="w", encoding="utf-8-sig")
+        file.write("<relations>\n")
 
         root = ET.fromstring("<relations></relations>")
         for (name, value) in parameters.items():
             root.set(name, value)
 
         for relation in self.relations:
-            document = ET.SubElement(root, "relation")
+            document = ET.fromstring("<relation></relation>")
 
             ET.SubElement(document, "src").text = relation.get_src()
             ET.SubElement(document, "dest").text = relation.get_dest()
             ET.SubElement(document, "similarity").text = str(relation.get_similarity())
 
-        # Write the file
-        functions.write_file( file, functions.xml_as_string(root))
-        functions.write_pickle( file, self.relations)
+            file.write( functions.xml_as_string(document))
+
+        # Write the end of the file
+        file.write("</relations>\n")
+        file.close()
+
+        functions.write_pickle( filename, self.relations)
+
 
     def save_html(self, src_corpus, output, dest_corpus = None, startof_id_filter = None):
         """
