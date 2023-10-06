@@ -22,8 +22,9 @@ class SectionDatasetTest(torch.utils.data.IterableDataset):
         super(SectionDatasetTest).__init__()
 
         self.device = device
-        if not os.path.isfile( cache_file):
-            self.__fill_cache( cache_file,  set_size)
+        # if not os.path.isfile( cache_file):
+        #     self.__fill_cache( cache_file,  set_size)
+        self.__fill_cache( cache_file,  set_size)
 
         self.data = self.__read_from_cache( cache_file)
 

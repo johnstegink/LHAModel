@@ -53,21 +53,27 @@ class NeuralNetworkPlain(nn.Module):
     def __init__(self, N):
         super(NeuralNetworkPlain, self).__init__()
 
-        self.hidden1 = nn.Linear(N*(N+1), N*(N+1))
-        self.dropout = nn.Dropout( 0.2)
+        self.hidden1 = nn.Linear(N*N, N)
+        self.dropout1 = nn.Dropout(0.1)
         self.act1 = nn.ReLU()
-        self.hidden2 = nn.Linear(N*(N+1), 5)
+        self.hidden2 = nn.Linear(N, 5)
+        self.dropout2 = nn.Dropout(0.1)
         self.act2 = nn.ReLU()
         self.output = nn.Linear(5, 1)
         self.act_output = nn.Sigmoid()
+
+        torch.nn.init.xavier_uniform( self.hidden1.weight)
+        torch.nn.init.xavier_uniform( self.output.weight)
+
     def forward(self, x):
         x1 = self.act1(self.hidden1(x))
-        # do = self.dropout( x1)
-        # x2 = self.act2(self.hidden2(do))
-        x2 = self.act2(self.hidden2(x1))
-        x_out = self.act_output(self.output(x2))
+        do1 = self.dropout1(x1)
+        x2 = self.act2(self.hidden2(do1))
+        do2 = self.dropout2(x2)
+        x_out = self.act_output(self.output(do2))
 
-        return x_out.flatten()
+        return x_out
+
 
 class NeuralNetworkStat(nn.Module):
     """
@@ -100,7 +106,7 @@ class NeuralNetworkTest(nn.Module):
     def __init__(self, N):
         super(NeuralNetworkTest, self).__init__()
 
-        self.hidden1 = nn.Linear(N, N)
+        self.hidden1 = nn.Linear(N*N, N)
         self.dropout1 = nn.Dropout( 0.0)
         self.act1 = nn.ReLU()
         self.hidden2 = nn.Linear(N, N)
@@ -154,7 +160,7 @@ def create_heatmap(X, title, heatmap_dir, filename, predicted, actual):
     if nntype == "masked":
         n = int(n /2)
 
-    matrix = X.reshape( n, n + 1)[:,:(n-1)]
+    matrix = X.reshape(n, n)[:,:(n)]
     inverted = 1 - matrix
     plt.pcolormesh( inverted, cmap="hot")
     plt.title( title)
@@ -165,7 +171,8 @@ def create_heatmap(X, title, heatmap_dir, filename, predicted, actual):
     plt.savefig( os.path.join(dir ,filename))
 
 
-def evaluate_the_model( model, Y, X_test, latest_loss, results_file, nr_of_heatmaps ):
+def evaluate_the_model( model, Y, X_test, latest_loss, results_file, titles, pairs, nr_of_heatmaps, batch_size, n_epochs, learning_rate, first
+ ):
     """
     Make an evaluation of the model
     :param model:
@@ -181,48 +188,18 @@ def evaluate_the_model( model, Y, X_test, latest_loss, results_file, nr_of_heatm
     (precision, recall, F1, _) =sklearn.metrics.precision_recall_fscore_support( y_act, y_pred, average="binary")
     accuracy = sklearn.metrics.accuracy_score( y_act, y_pred)
 
-    # correct = 0.0
-    # fp = 0.0
-    # tp = 0.0
-    # fn = 0.0
-    # total = len(X_test)
-    # with tqdm(total=nr_of_heatmaps, desc="Creating heatmaps") as progress:
-    #     for i in range(0, total):
-    #
-    #         X = X_test[i]
-    #         Y = Y_test[i]
-    #         prediction = 1 if model(X) >= 0.5 else 0
-    #
-    #         if prediction == 0 and int(Y) == 1:
-    #             fp += 1.0
-    #
-    #         elif prediction == 1 and int(Y) == 1:
-    #             correct += 1.0
-    #             tp += 1.0
-    #
-    #         elif prediction == 0 and int(Y) == 1:
-    #             fn += 1.0
-    #
-    #         if int(prediction) == int(Y):
-    #             correct += 1.0
-    #
-    #         if nr_of_heatmaps > 0:
-    #             equal = int(Y)
-    #             title = validation_ds.get_title(i) + " "
-    #             title += "(Equal)" if equal else "(NOT equal)"
-    #
-    #             filename = validation_ds.get_pair(i) + ".png"
-    #             # make_heatmap(X, title, heatmap_dir, filename, prediction, equal)
-    #
-    #             nr_of_heatmaps -= 1
-    #             progress.update()
-    #
-    # # Print the accuracy
-    # if tp > 0:
-    #     recall = tp / (tp + fn)
-    #     precision = tp / (tp + fp)
-    #     F1 = (2 * recall * precision) / (recall + precision)
-    #     accuracy = int((correct / total) * 100)
+    to_be_created = min(nr_of_heatmaps, len(y_pred))
+    with tqdm(total=to_be_created, desc="Creating heatmaps") as progress:
+        for i in range(0, to_be_created):
+            title = titles[i] + " "
+            title += "(Equal)" if y_act[i] else "(NOT equal)"
+
+            filename = pairs[i] + ".png"
+            create_heatmap(X_test[i], title, heatmap_dir, filename, y_pred[i], y_act[i])
+
+            nr_of_heatmaps -= 1
+            progress.update()
+
 
     tp = fp = fn = 0
     for i in range(0, len(y_pred)):
@@ -230,13 +207,17 @@ def evaluate_the_model( model, Y, X_test, latest_loss, results_file, nr_of_heatm
         elif y_pred[i] and not y_act[i]: fp += 1
         elif not y_pred[i] and y_act[i]: fn += 1
 
-    readable = f"Accuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}\nLatest loss: {latest_loss}"
-    tsv =f"{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}\t{latest_loss}"
+    readable = f"Batch size: {batch_size}\nEpochs: {n_epochs}, Learning rate: {learning_rate}\nAccuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}\nLatest loss: {latest_loss}"
+    tsv = f"{batch_size}\t{n_epochs}\t{learning_rate}\t{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}\t{latest_loss}\n";
+    header = "Batch size\tEpochs\tLearning rate\tF1\tAccuracy\tPrecision\tRecall\tTrue Positives\tFalse Positives\tLatest loss\n";
     print( readable)
-    print( tsv)
 
-    functions.write_file(results_file + ".txt", readable)
-    functions.write_file(results_file + ".tsv", tsv)
+    if first:
+        functions.write_file(results_file + ".txt", readable)
+        functions.write_file(results_file + ".tsv", header + tsv)
+    else:
+        functions.append_file(results_file + ".txt", readable)
+        functions.append_file(results_file + ".tsv", tsv)
 
 
 
@@ -255,12 +236,9 @@ if __name__ == '__main__':
         threshold = 0.3
         ds = SectionDatasetStat(device=device, corpus_dir=corpusdir, relations_file=relations_file, top_threshold=threshold, cache_file=cache_file)
     else:
-        train_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir,
+        ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir,
                                   documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype,
                                   cache_file=cache_file)
-        validation_ds = SectionDataset(N=N, device=device, corpus_dir=corpusdir,
-                                   documentvectors_dir=vectors_dir, transformation=transformation, nntype=nntype,
-                                   cache_file=cache_file)
 
 
     X = torch.tensor( [data[0] for data in ds], dtype=torch.float32, device=device)
@@ -281,17 +259,9 @@ if __name__ == '__main__':
     pairs_test = pairs[validation_start:]
 
 
-    # parameters
-    batch_size = 100
-    n_epochs = 100
-    learning_rate = 0.1
-    nr_of_heatmaps = 0
-    batches_per_epoch = len(X_train) // batch_size
-
-
     # Define the model
     if nntype == "plain":
-        model = NeuralNetworkPlain( N)
+        model = NeuralNetworkPlain(N)
     elif nntype == "masked":
         model = NeuralNetworkMask(N)
     elif nntype == "stat":
@@ -301,47 +271,65 @@ if __name__ == '__main__':
     else:
         raise f"Unknown neural network type: {nntype}"
 
+    model.to(device)
 
-    model.to( device)
-    loss_fn = nn.BCELoss()  # binary cross entropy
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    nr_of_heatmaps = 0
+    first = True
+    for batch_size in [20, 50, 100, 200]:
+        for n_epochs in [10, 60, 100, 200]:
+            for learning_rate in [0.001, 0.01, 0.1]:
+                loss_fn = nn.BCELoss()  # binary cross entropy
+                optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # Train the model
-    losses = []
-    for epoch in range(n_epochs):
-        epoch_loss = []
-        for i in range( batches_per_epoch):
-            start = i * batch_size
+                batches_per_epoch = math.ceil(len(X_train) / batch_size)
 
-            # take a batch
-            Xbatch = X_train[start:start + batch_size]
-            y_batch = y_train[start:start + batch_size]
+                # Train the model
+                losses = []
+                for epoch in range(n_epochs):
+                    for i in range( batches_per_epoch):
+                        start = i * batch_size
 
-            # forward pass
-            y_pred = model(Xbatch)
-            loss = loss_fn(y_pred, y_batch)
+                        # take a batch
+                        Xbatch = X_train[start:min(start + batch_size, len( X_train))]
+                        y_batch = y_train[start:min(start + batch_size, len( X_train))]
 
-            # backward pass
-            optimizer.zero_grad()
-            loss.backward()
+                        # forward pass
+                        y_pred = model(Xbatch)
+                        loss = loss_fn(y_pred, y_batch)
 
-            # update weights
-            optimizer.step()
+                        # backward pass
+                        optimizer.zero_grad()
+                        loss.backward()
 
-        epoch_loss.append( loss.item())
+                        # update weights
+                        optimizer.step()
 
-        losses.append( epoch_loss)
-        latest_loss = epoch_loss
-        print(f'Finished epoch {epoch}, latest loss {epoch_loss}')
+                    epoch_loss = loss.item()
+                    # print(f'Finished epoch {epoch}, latest loss {epoch_loss}')
 
-    # Plot the loss graph.
-    # plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Loss')
-    # plt.show()
+                latest_loss = epoch_loss
 
-    evaluate_the_model(model=model, X_test=X_test, Y=Y_test, latest_loss=latest_loss, results_file=results_file, nr_of_heatmaps=nr_of_heatmaps)
+                # Plot the loss graph.
+                # plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
+                # plt.xlabel('Epoch')
+                # plt.ylabel('Loss')
+                # plt.show()
 
+                evaluate_the_model(
+                    model=model,
+                    X_test=X_test,
+                    Y=Y_test,
+                    latest_loss=latest_loss,
+                    titles=titles_test,
+                    pairs=pairs_test,
+                    results_file=results_file,
+                    nr_of_heatmaps=nr_of_heatmaps,
+                    first=first,
+                    batch_size=batch_size,
+                    n_epochs=n_epochs,
+                    learning_rate=learning_rate
+                )
+                first = False
 
 
 

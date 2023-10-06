@@ -79,6 +79,19 @@ def write_file(filename, contents):
     file.close()
 
 
+def append_file(filename, contents):
+    """
+    Write text contents to a file
+    :param filename: path to the file
+    :param contents: textcontents
+    :return: -
+    """
+
+    file = open( filename, mode="a", encoding="utf-8-sig")
+    file.write( contents)
+    file.close()
+
+
 
 def xml_as_string(element):
     """

@@ -8,6 +8,7 @@ import functions
 
 class DocumentRelations:
     def __init__(self, relations):
+        super( DocumentRelations)
         self.relations = relations
         self.is_dirty = True
 

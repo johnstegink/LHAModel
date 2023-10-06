@@ -1,5 +1,7 @@
 # Class implements a dataset for corpus files. It uses a cache for the distance matrix
 import pickle
+
+import numpy
 import torch
 import torch.utils.data
 import torch.nn.functional as torchF
@@ -14,12 +16,11 @@ from statistics import mean
 
 class SectionDataset(torch.utils.data.IterableDataset):
 
-    def __init__(self, N, device, corpus_dir, dataset, documentvectors_dir, nntype, transformation, cache_file):
+    def __init__(self, N, device, corpus_dir, documentvectors_dir, nntype, transformation, cache_file):
         """
         :param N: the maximum number of sections i.e. the size of the vector will be NxN
         :param device: the device to put the tensors on
         :param corpus_dir: the directory with the corpus containing the document pairs
-        :param dataset: can either be 'train' or 'validation'
         :param nntype: is a choice from the list ["plain", "masked", "lstm"]
         :param documentvectors_dir: the directory containing the documentvectors
         :param transformation: can either be 'truncate' or 'avg'
@@ -32,8 +33,8 @@ class SectionDataset(torch.utils.data.IterableDataset):
 
 
         self.N = N
-        if not nntype in ["plain", "masked", "lstm"]:
-            raise f"Unknown nntype: {transformation}, only 'plain', 'lstm' or 'masked' are allowed"
+        if not nntype in ["plain", "masked"]:
+            raise f"Unknown nntype: {transformation}, only 'plain' or 'masked' are allowed"
 
         self.NNType = nntype
         self.device = device
@@ -47,30 +48,12 @@ class SectionDataset(torch.utils.data.IterableDataset):
 
 
 
-        if not os.path.isfile( cache_file):
-            self.__fill_cache( cache_file, Corpus(directory=corpus_dir),  DocumentVectors.read(documentvectors_dir))
+        # if not os.path.isfile( cache_file):
+        #     self.__fill_cache( cache_file, Corpus(directory=corpus_dir),  DocumentVectors.read(documentvectors_dir))
 
-        (all_data, all_labels, all_titles, all_pairs) = self.__read_from_cache( cache_file)
+        self.__fill_cache(cache_file, Corpus(directory=corpus_dir), DocumentVectors.read(documentvectors_dir))
 
-        validation_start = len( all_data) -int( len(all_data) / 10)
-        if dataset.lower() == 'train':
-            start_index = 0
-            end_index = validation_start
-        elif dataset.lower() == 'validation':
-            start_index = validation_start + 1
-            end_index = len(all_data) - 1
-        else:
-            raise f"Unknown dataset {dataset} only 'train' or 'validation' are allowed"
-
-        self.data = []
-        self.labels = []
-        self.titles = []
-        self.pairs = []
-        for i in range( start_index, end_index + 1):
-            self.data.append(torch.tensor( all_data[i], dtype=torch.float32, device=self.device))
-            self.labels.append(torch.tensor( all_labels[i], dtype=torch.float32, device=self.device))
-            self.titles.append( all_titles[i])
-            self.pairs.append( all_pairs[i])
+        self.data = self.__read_from_cache( cache_file)
 
     def __fill_cache(self, file, corpus, document_vectors):
         """
@@ -80,44 +63,44 @@ class SectionDataset(torch.utils.data.IterableDataset):
         :param file The documentvectors
         """
 
-        labels = []
         rows = []
-        titles = []
-        pairs = []
         for pair in corpus.read_document_pairs( True):
             src = pair.get_src()
             dest = pair.get_dest()
+
+            # if not ( src == "Q166620" and  dest == "Q1572329"): continue
 
             if document_vectors.documentvector_exists( src) and document_vectors.documentvector_exists( dest):
                 srcname = corpus.getDocument(src).get_title()
                 destname = corpus.getDocument(dest).get_title()
 
-                titles.append(f"'{srcname} -> {destname}")
-                pairs.append(f"{src} -- {dest}")
-
                 src_vector = document_vectors.get_documentvector( pair.get_src())
                 dest_vector = document_vectors.get_documentvector( pair.get_dest())
 
-                # remove vectors that are all 0
-                src_vectors = [vector for (index, vector) in src_vector.get_sections() if not all(v == 0 for v in vector)]
-                dest_vectors = [vector for (index, vector) in dest_vector.get_sections() if not all(v == 0 for v in vector)]
+                src_vectors = [vector for (index, vector) in src_vector.get_sections()] # if not all(v == 0 for v in vector)]
+                dest_vectors = [vector for (index, vector) in dest_vector.get_sections()] # if not all(v == 0 for v in vector)]
+
+                # everything zero is not equal
                 distances = distance.cdist(src_vectors, dest_vectors, 'cosine')
                 sim_matrix = 1 - distances
 
                 vector = self.__matrix_to_vector( sim_matrix)
+
+                # everything zero is not equal
+                if all(v == 0 for v in vector):
+                    sim_matrix = numpy.zeros( src_vectors.shape[0], dest_vectors.shape[0])
+
                 if self.withmask:
                     mask = np.zeros(vector.shape[0], dtype=float)
                     mask[vector != 0.0] = 1
                     vector += list(mask)
-                    rows.append(list(vector) + list(mask))
+                    rows.append((list(vector) + list(mask), pair.get_similarity(), f"{srcname} -> {destname}", f"{src} -- {dest}"))
                 else:
-                    rows.append( list( vector))
+                    rows.append((list(vector), pair.get_similarity(), f"{srcname} -> {destname}", f"{src} -- {dest}"))
 
 
-                labels.append( pair.get_similarity() )
 
-
-        self.__save_in_pickle(rows, labels, titles, pairs, file)
+        self.__save_in_pickle(file,rows)
 
 
     def __read_from_cache(self, file):
@@ -128,12 +111,10 @@ class SectionDataset(torch.utils.data.IterableDataset):
         """
 
         with open(file, "rb") as pickle_file:
-            (data, labels, titles, pairs) = pickle.load(pickle_file)
-
-        return data, labels, titles, pairs
+            return pickle.load(pickle_file)
 
 
-    def __save_in_pickle(self, data, labels, titels, pairs, file):
+    def __save_in_pickle(self, file, data):
         """
         Saves the data and the labels in a pickle file
         :param data:
@@ -141,9 +122,11 @@ class SectionDataset(torch.utils.data.IterableDataset):
         :return: None
         """
 
-        with open(file , "wb") as pickle_file:
-            pickle.dump( (data, labels, titels, pairs), pickle_file)
+        with open(file, "wb") as pickle_file:
+            pickle.dump(data, pickle_file)
 
+    def __iter__(self):
+        return iter(self.data)
 
     def __matrix_to_vector(self, sim_matrix):
         """
@@ -177,46 +160,6 @@ class SectionDataset(torch.utils.data.IterableDataset):
 
         average = mean( matrix_row[(self.N - 1):])
         return matrix_row[0:(self.N - 1)] + [average]
-
-
-    def __iter__(self):
-        ...
-        return iter(range(0, len(self.data)))
-
-    def __len__(self):
-        """
-        Standard functions that returns the number of documentpairs
-        :return:
-        """
-
-        return len(self.data)
-
-
-    def __getitem__(self, idx):
-        """
-        Get the i-th item from the dataset
-        :param idx:
-        :return:
-        """
-
-        return( self.data[idx], self.labels[idx])
-
-    def get_title(self, idx):
-        """
-        Get the (wikipedia)titels as a string
-        :param idx:
-        :return:
-        """
-        return self.titles[idx]
-
-
-    def get_pair(self, idx):
-        """
-        Get the ids that form the pair as a string
-        :param idx:
-        :return:
-        """
-        return self.pairs[idx]
 
 
 # N = 12
