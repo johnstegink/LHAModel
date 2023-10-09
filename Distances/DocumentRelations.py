@@ -187,6 +187,23 @@ class DocumentRelations:
 
         return 0
 
+
+    def pair_is_available(self, src, dest):
+        """
+        Determines whether a pair is available
+        :param src:
+        :param dest:
+        :return:
+        """
+
+        for rel in self.relations:
+            if rel.get_src() == src  and  rel.get_dest() == dest:
+                return True
+
+        return False
+
+
+
     def __len__(self):
         """
         The number of relations

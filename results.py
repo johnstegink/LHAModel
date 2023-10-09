@@ -38,24 +38,26 @@ def add_to_list(data, path):
     contents = functions.read_file( path)
 
     file_data = file.split("_")
-    content_data = contents.split("\t")
-    new_row = {"Corpus": file_data[0],
-               "Language": file_data[1],
-               "Method": file_data[2],
-               "Similarity": file_data[3],
-               "Max doc": file_data[4],
-               "N": file_data[5],
-               "NN type": file_data[6],
-               "F1": content_data[0],
-               "Accuracy": content_data[1],
-               "Precision": content_data[2],
-               "Recall": content_data[3],
-               "True positives": content_data[4],
-               "False positives": content_data[5],
-               "True negatives": content_data[6],
-               "Latest loss": content_data[7]
-               }
-    data.append(new_row)
+    for line in contents.split( "\n"):
+        if "\t" in line:
+            content_data = line.split("\t")
+            new_row = {"Corpus": file_data[0],
+                       "Language": file_data[1],
+                       "Method": file_data[2],
+                       "Similarity": file_data[3],
+                       "Max doc": file_data[4],
+                       "N": file_data[5],
+                       "NN type": file_data[6],
+                       "F1": content_data[0],
+                       "Accuracy": content_data[1],
+                       "Precision": content_data[2],
+                       "Recall": content_data[3],
+                       "True positives": content_data[4],
+                       "False positives": content_data[5],
+                       "True negatives": content_data[6],
+                       "Latest loss": content_data[7]
+                       }
+            data.append(new_row)
 
 
 

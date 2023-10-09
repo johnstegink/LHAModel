@@ -311,3 +311,34 @@ def iterate_xml(xmlfile):
             yield element
             start_tag = None
             root.clear()
+
+
+
+def cosine_similarity(A):
+    """
+    Calculate cosine similarity 30x faster than sklearn
+    https://stackoverflow.com/questions/17627219/whats-the-fastest-way-in-python-to-calculate-cosine-similarity-given-sparse-mat
+    :param A:
+    :param T:
+    :return:
+    """
+    # base similarity matrix (all dot products)
+    similarity = np.dot(A, A.T)
+
+    # squared magnitude of preference vectors (number of occurrences)
+    square_mag = np.diag(similarity)
+
+    # inverse squared magnitude
+    inv_square_mag = 1 / square_mag
+
+    # if it doesn't occur, set it's inverse magnitude to zero (instead of inf)
+    inv_square_mag[np.isinf(inv_square_mag)] = 0
+
+    # inverse of the magnitude
+    inv_mag = np.sqrt(inv_square_mag)
+
+    # cosine similarity (elementwise multiply by inverse magnitudes)
+    cosine = similarity * inv_mag
+    cosine = cosine.T * inv_mag
+
+    return cosine

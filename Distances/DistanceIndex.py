@@ -96,13 +96,14 @@ class DistanceIndex:
 
         return dr
 
-    def calculate_relations_less_slow(self, minimal_similarity, second_index=None, maximum_number_of_results=100):
+    def calculate_relations_less_slow(self, minimal_similarity, second_index=None, maximum_number_of_results=100, corpus_pairs=None):
         """
         Determine the relations between the documents given the minimal distance, this is without using the ANN,
         but by using sklearn to compare to matrices
         :param minimal_similarity: value between 0 and 1
         :param second_index: The name of the index to compare to, if ommitted the index is compared to itself
         :param maximum_number_of_results:
+        :param corpus_pairs: Create relations for the pairs in the corpus only
         :return: a object with document relations
         """
 
@@ -124,8 +125,9 @@ class DistanceIndex:
                 if sims[i1, i2] >= minimal_similarity:
                     docid1 = docids1[i1]
                     docid2 = docids2[i2]
-                    if not(second_index is None) or docid1 != docid2:   # When camparing to the same index, skip identical documents
-                        dr.add(src=docid1, dest=docid2, similarity=sims[i1, i2])
+                    if corpus_pairs is None or corpus_pairs.pair_is_available( docid1, docid2):  # Only if we want this pair
+                        if not(second_index is None) or docid1 != docid2:   # When camparing to the same index, skip identical documents
+                            dr.add(src=docid1, dest=docid2, similarity=sims[i1, i2])
                 else:
                     break
 

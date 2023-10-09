@@ -146,6 +146,27 @@ class DocumentVectors:
 
 
 
+    def get_index_and_matrix_for_list(self, ids):
+        """
+        Returns a matrix with all values of all vectors with the given ids
+        The indexes are the documentids in the rows
+        :param src: src id
+        :param dest_list: list of destination ids
+        :return: (indexes, matrix)
+        """
+
+        indexes = []
+        matrix = []
+
+        for vector in self.vectors.values():
+            if vector.get_id() in ids:
+                indexes.append( vector.documentid)
+                matrix.append(vector.vector)
+
+        return (indexes, matrix)
+
+
+
     def __iter__(self):
         """
         Initialize the iterator

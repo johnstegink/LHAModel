@@ -53,12 +53,12 @@ class NeuralNetworkPlain(nn.Module):
     def __init__(self, N):
         super(NeuralNetworkPlain, self).__init__()
 
-        self.hidden1 = nn.Linear(N*N, N)
-        self.dropout1 = nn.Dropout(0.1)
+        self.hidden1 = nn.Linear(N*N, 5)
+        self.dropout1 = nn.Dropout(0.0)
         self.act1 = nn.ReLU()
-        self.hidden2 = nn.Linear(N, 5)
-        self.dropout2 = nn.Dropout(0.1)
-        self.act2 = nn.ReLU()
+        # self.hidden2 = nn.Linear(N, 5)
+        # self.dropout2 = nn.Dropout(0.1)
+        # self.act2 = nn.ReLU()
         self.output = nn.Linear(5, 1)
         self.act_output = nn.Sigmoid()
 
@@ -68,9 +68,9 @@ class NeuralNetworkPlain(nn.Module):
     def forward(self, x):
         x1 = self.act1(self.hidden1(x))
         do1 = self.dropout1(x1)
-        x2 = self.act2(self.hidden2(do1))
-        do2 = self.dropout2(x2)
-        x_out = self.act_output(self.output(do2))
+        # x2 = self.act2(self.hidden2(do1))
+        # do2 = self.dropout2(x2)
+        x_out = self.act_output(self.output(do1))
 
         return x_out
 
@@ -106,7 +106,7 @@ class NeuralNetworkTest(nn.Module):
     def __init__(self, N):
         super(NeuralNetworkTest, self).__init__()
 
-        self.hidden1 = nn.Linear(N*N, N)
+        self.hidden1 = nn.Linear(N, N)
         self.dropout1 = nn.Dropout( 0.0)
         self.act1 = nn.ReLU()
         self.hidden2 = nn.Linear(N, N)
@@ -117,9 +117,9 @@ class NeuralNetworkTest(nn.Module):
     def forward(self, x):
         x1 = self.act1(self.hidden1(x))
         do1 = self.dropout1( x1)
-        x2 = self.act2(self.hidden2(do1))
-        do2 = self.dropout2( x2)
-        x_out = self.act_output(self.output(do2))
+        # x2 = self.act2(self.hidden2(do1))
+        # do2 = self.dropout2( x2)
+        x_out = self.act_output(self.output(do1))
 
         return x_out
 
@@ -171,8 +171,7 @@ def create_heatmap(X, title, heatmap_dir, filename, predicted, actual):
     plt.savefig( os.path.join(dir ,filename))
 
 
-def evaluate_the_model( model, Y, X_test, latest_loss, results_file, titles, pairs, nr_of_heatmaps, batch_size, n_epochs, learning_rate, first
- ):
+def evaluate_the_model( model, Y, X_test, latest_loss, results_file, titles, pairs, nr_of_heatmaps, batch_size, n_epochs, learning_rate, first):
     """
     Make an evaluation of the model
     :param model:
@@ -228,7 +227,8 @@ if __name__ == '__main__':
     device = torch.device("cpu")
 
     cache_file = os.path.join( cache_dir, f"dataset_{N}_{nntype}.pkl")
-    results_file = os.path.join( output_dir, f"results_{os.path.basename(relations_file).split('.')[0]}_{N}_{nntype}")
+    base_file = os.path.basename(relations_file).split('.')[0].replace("_pairsonly", "")
+    results_file = os.path.join( output_dir, f"results_{base_file}_{N}_{nntype}")
 
     if( nntype=="test"):
         ds = SectionDatasetTest(device=device, set_size=5000, cache_file=cache_file)
@@ -274,6 +274,7 @@ if __name__ == '__main__':
     model.to(device)
 
     nr_of_heatmaps = 0
+    plot_graph = False
     first = True
     for batch_size in [20, 50, 100, 200]:
         for n_epochs in [10, 60, 100, 200]:
@@ -305,15 +306,17 @@ if __name__ == '__main__':
                         optimizer.step()
 
                     epoch_loss = loss.item()
+                    losses.append( epoch_loss)
                     # print(f'Finished epoch {epoch}, latest loss {epoch_loss}')
 
                 latest_loss = epoch_loss
 
                 # Plot the loss graph.
-                # plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
-                # plt.xlabel('Epoch')
-                # plt.ylabel('Loss')
-                # plt.show()
+                if plot_graph:
+                    plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
+                    plt.xlabel('Epoch')
+                    plt.ylabel('Loss')
+                    plt.show()
 
                 evaluate_the_model(
                     model=model,

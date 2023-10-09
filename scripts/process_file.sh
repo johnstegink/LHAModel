@@ -84,29 +84,29 @@ echo "..."
 if [ ! -f "$VECTORFILE" ]; then
   $VENVDIR/python createvectors.py -c $CORPUSDIR -o "$VECTORFILE" -a $METHOD
 else
-  echo "  -- ${VECTORFILE} already exists"
+  echo "  -- Vector file:  ${VECTORFILE} already exists"
 fi
 
 # create the relations if they do not exist
-RELATIONSFILE="${BASEDIR}/relations/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}.xml"
-echo "$VENVDIR/python createrelations.py -c $CORPUSDIR -i $VECTORFILE -s $SIM -o $RELATIONSFILE -m $MAXDOC"
+RELATIONSFILE="${BASEDIR}/relations/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_pairsonly.xml"
+echo "$VENVDIR/python createrelations.py -c $CORPUSDIR -i $VECTORFILE -s $SIM -o $RELATIONSFILE -m $MAXDOC -p True"
 echo "..."
 
 if [ ! -f "$RELATIONSFILE" ]; then
-  $VENVDIR/python createrelations.py -c $CORPUSDIR -i $VECTORFILE -s $SIM -o $RELATIONSFILE -m $MAXDOC
+  $VENVDIR/python createrelations.py -c $CORPUSDIR -i $VECTORFILE -s $SIM -o $RELATIONSFILE -m $MAXDOC -p True
 else
-  echo "  -- ${RELATIONSFILE} already exists"
+  echo "  -- Relations file: ${RELATIONSFILE} already exists"
 fi
 
 # create the section relations if they do not exist
-SECTIONSFILE="${BASEDIR}/sections/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}.xml"
+SECTIONSFILE="${BASEDIR}/sections/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}_pairsonly.xml"
 echo "$VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS # -d $HTMLDIR"
 echo "..."
 
 if [ ! -f "$SECTIONSFILE" ]; then
   $VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS # -d $HTMLDIR
 else
-  echo "  -- ${SECTIONSFILE} already exists"
+  echo "  -- Sections file: ${SECTIONSFILE} already exists"
 fi
 
 HEATMAPDIR="${BASEDIR}/heatmaps/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}"
