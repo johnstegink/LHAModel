@@ -7,7 +7,7 @@ NROFSECTIONS=12
 NEARESTNEIGHBORS=10
 CURRENT=`pwd`
 VENVDIR=/Users/jstegink/Dropbox/John/Studie/OU/Afstuderen/Thesis/Code/LHA/py/bin
-RESULTSDIR="${BASEDIR}/html"
+RESULTSDIR="${BASEDIR}/results"
 FINAL_DIR="${BASEDIR}/final"
 FINAL_FILE="together.xlsx"
 
