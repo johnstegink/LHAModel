@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Processes a single file usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]
+# Processes a single file usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>] [-r <NN type>]
 
 BASEDIR=/Volumes/Extern/Studie/studie
 HTMLDIR="${BASEDIR}/html"
@@ -19,7 +19,7 @@ source $VENVDIR/activate
 cd $CURRENT
 
 zmodload zsh/zutil
-zparseopts -D -F c:=corpus_val m:=method_val s:=sim_val d:=maxdoc_val n:=nn_val t:=nrofsections_val || (echo "Usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]"; exit 1)
+zparseopts -D -F c:=corpus_val m:=method_val s:=sim_val d:=maxdoc_val n:=nn_val t:=nrofsections_val r:nn_type_val || (echo "Usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]"; exit 1)
 
 CORPUS=${corpus_val[-1]}
 METHOD=${method_val[-1]}
@@ -27,6 +27,7 @@ SIM=${sim_val[-1]}
 MAXDOC=${maxdoc_val[-1]}
 NEARESTNEIGHBORS=${nn_val[-1]}
 NROFSECTIONS=${nrofsections_val[-1]}
+NN_TYPE=${nn_type_val[-1]}
 
 TRAPERR() {
   echo "Error during execution of script";
@@ -71,8 +72,11 @@ if [ "$NROFSECTIONS" = "" ]; then
   echo "NrOfSection was not specified, a value of ${NROFSECTIONS} is used"
 fi
 
-echo $SIM
-echo $MAXDOC
+
+if [ "${NN_TYPE}" != "stat" ]  && [ "${NN_TYPE}" != "plain" ]; then
+  echo "Please use: stat, plain for the neural network type"
+  exit 3
+fi
 
 
 
@@ -112,12 +116,12 @@ fi
 HEATMAPDIR="${BASEDIR}/heatmaps/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}"
 SCRATCHDIR="${BASEDIR}/scratch/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}"
 
-echo "-N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o ${RESULTSDIR}"
+echo "-N $NROFSECTIONS -c $CORPUSDIR -nn $NN_TYPE -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o ${RESULTSDIR}"
 echo "..."
-$VENVDIR/python trainModel.py -N $NROFSECTIONS -c $CORPUSDIR -nn stat -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o $RESULTSDIR
+$VENVDIR/python trainModel.py -N $NROFSECTIONS -c $CORPUSDIR -nn $NN_TYPE -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o $RESULTSDIR
 
 echo "$VENVDIR/python results.py -d $RESULTSDIR -t excel -o ${FINAL_DIR}/${FINAL_FILE}"
 echo "..."
-$VENVDIR/python results.py -d $RESULTSDIR -t excel -o "${FINAL_DIR}/${FINAL_FILE}"
+#$VENVDIR/python results.py -d $RESULTSDIR -t excel -o "${FINAL_DIR}/${FINAL_FILE}"
 
 exit 0

@@ -92,7 +92,6 @@ if __name__ == '__main__':
 
     results_file = os.path.join( output_dir, f"results_{os.path.basename(relations_file).split('.')[0]}")
 
-
     print("Reading corpus")
     corpus = Corpus(directory=corpusdir)
 
