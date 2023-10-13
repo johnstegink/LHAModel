@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Processes a single file usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>] [-r <NN type>]
+# Processes a single file usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>] [-r <NN_type>]
 
 BASEDIR=/Volumes/Extern/Studie/studie
 HTMLDIR="${BASEDIR}/html"
@@ -19,7 +19,7 @@ source $VENVDIR/activate
 cd $CURRENT
 
 zmodload zsh/zutil
-zparseopts -D -F c:=corpus_val m:=method_val s:=sim_val d:=maxdoc_val n:=nn_val t:=nrofsections_val r:nn_type_val || (echo "Usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]"; exit 1)
+zparseopts -D -F c:=corpus_val m:=method_val s:=sim_val d:=maxdoc_val n:=nn_val t:=nrofsections_val r:=nn_type_val || (echo "Usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>]"; exit 1)
 
 CORPUS=${corpus_val[-1]}
 METHOD=${method_val[-1]}
