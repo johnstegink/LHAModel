@@ -208,7 +208,7 @@ def evaluate_the_model( model, Y, X_test, latest_loss, results_file, titles, pai
 
     readable = f"Batch size: {batch_size}\nEpochs: {n_epochs}, Learning rate: {learning_rate}\nAccuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}\nLatest loss: {latest_loss}"
     tsv = f"{batch_size}\t{n_epochs}\t{learning_rate}\t{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}\t{latest_loss}\n";
-    header = "Batch size\tEpochs\tLearning rate\tF1\tAccuracy\tPrecision\tRecall\tTrue Positives\tFalse Positives\tLatest loss\n";
+    header = "Batch size\tEpochs\tLearning rate\tF1\tAccuracy\tPrecision\tRecall\tTrue Positives\tFalse Positives\tFalse Negatives\tLatest loss\n";
     print( readable)
 
     if first:
