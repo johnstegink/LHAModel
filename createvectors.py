@@ -3,6 +3,7 @@
 import argparse
 import collections
 
+from documentencoders.USEEncoder import USEEcoder
 from texts.corpus import Corpus
 from Distances.DistanceIndex import DistanceIndex
 import sys
@@ -13,6 +14,8 @@ from documentencoders.AvgWord2VecEncoder import AvgWord2VecEncoder
 from documentencoders.SBertencoder import SBertEcoder
 from Distances.DocumentVectors import  DocumentVectors
 from tqdm import *
+import tensorflow_text
+
 
 # import pydevd_pycharm
 #
@@ -54,7 +57,7 @@ def create_encoder( algorithm):
     elif algorithm == "sbert":
         encoder = SBertEcoder(corpus.get_language_code())
     elif algorithm == "use":
-        encoder = SBertEcoder(corpus.get_language_code())
+        encoder = USEEcoder(corpus.get_language_code())
     elif algorithm == "word2vec":
         encoder = AvgWord2VecEncoder(corpus.get_language_code())
     else:

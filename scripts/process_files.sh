@@ -11,11 +11,12 @@ cd $CURRENT
 
 mkdir -p $SESSIONS_DIR
 
-for language in en nl
+for language in nl en
 do
   for corpus in wikisim wire gWikimatch
   do
-    for method in word2vec sent2vec sbert use
+#    for method in word2vec sent2vec sbert use
+   for method in  use
     do
       for sim in 30 50 70 80
       do

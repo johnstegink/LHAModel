@@ -91,6 +91,8 @@ else
   echo "  -- Vector file:  ${VECTORFILE} already exists"
 fi
 
+exit
+
 # create the relations if they do not exist
 RELATIONSFILE="${BASEDIR}/relations/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_pairsonly.xml"
 echo "$VENVDIR/python createrelations.py -c $CORPUSDIR -i $VECTORFILE -s $SIM -o $RELATIONSFILE -m $MAXDOC -p True"

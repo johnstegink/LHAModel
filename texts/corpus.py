@@ -131,6 +131,15 @@ class Corpus:
             return document
 
 
+    def has_document(self, id):
+        """
+        Checks whether the document with the given Id is in the corpus
+        :param id:
+        :return:
+        """
+        return id in self.files
+
+
     def read_similarities(self, single=False):
         """
         Return a new similarities object with all similarities in this corpus

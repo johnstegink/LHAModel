@@ -9,7 +9,10 @@ from documentencoders.documentencoder import Documentencoder_base
 
 class SBertEcoder(Documentencoder_base):
 
-    SBERTODELPATH = "sentence-transformers/all-mpnet-base-v2"
+    SBERTODELPATHS = {
+        "en": "sentence-transformers/all-mpnet-base-v2",
+        "nl": "sentence-transformers/distiluse-base-multilingual-cased-v1"
+    }
     SBERTVECTORSIZE = 768
     # SBERTODELPATH = "sentence-transformers/all-MiniLM-L12-v2"
     # SBERTVECTORSIZE = 384
@@ -17,7 +20,7 @@ class SBertEcoder(Documentencoder_base):
     def __init__(self, language_code):
         super(SBertEcoder, self).__init__(language_code)
 
-        self.model = SentenceTransformer(SBertEcoder.SBERTODELPATH)
+        self.model = SentenceTransformer(SBertEcoder.SBERTODELPATH[language_code])
         self.cleaner = Cleaner(language_code=self.language_code)
 
     def get_vector_size(self):

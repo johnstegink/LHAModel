@@ -12,17 +12,17 @@ from documentencoders.documentencoder import Documentencoder_base
 
 
 class USEEcoder(Documentencoder_base):
-    module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
-    print("module %s loaded" % module_url)
+    module_urls = {
+     "en" :"https://tfhub.dev/google/universal-sentence-encoder/4",
+     "nl": "https://tfhub.dev/google/universal-sentence-encoder-multilingual/3"
+    }
 
     USEVECTORSIZE = 512
-    # SBERTODELPATH = "sentence-transformers/all-MiniLM-L12-v2"
-    # SBERTVECTORSIZE = 384
 
     def __init__(self, language_code):
         super(USEEcoder, self).__init__(language_code)
 
-        self.model =  hub.load(self.module_url)
+        self.model =  hub.load(self.module_urls[language_code])
         self.cleaner = Cleaner(language_code=self.language_code)
 
     def get_vector_size(self):
@@ -42,6 +42,6 @@ class USEEcoder(Documentencoder_base):
         # Reduce logging output.
         logging.set_verbosity(logging.ERROR)
         joined = " ".join( text) if type(text) == list else text
-        vector = self.model.embed( joined)
+        vector = self.model( joined)
 
         return vector            # return the vector

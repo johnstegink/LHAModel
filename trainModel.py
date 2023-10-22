@@ -273,7 +273,7 @@ if __name__ == '__main__':
 
     model.to(device)
 
-    nr_of_heatmaps = 0
+    nr_of_heatmaps = 100
     plot_graph = False
     first = True
     for batch_size in [20, 50, 100, 200]:
