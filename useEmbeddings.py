@@ -125,7 +125,6 @@ if __name__ == '__main__':
     # Fill the dataframe
     data = []
     for (corpusname, language, method) in list_vectors(vector_dir):
-        if language == "nl" : continue
 
         print("Reading corpus")
         corpus = Corpus(directory=os.path.join( corpora_dir, f"{corpusname}_{language}" ))

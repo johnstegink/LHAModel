@@ -20,7 +20,7 @@ class SBertEcoder(Documentencoder_base):
     def __init__(self, language_code):
         super(SBertEcoder, self).__init__(language_code)
 
-        self.model = SentenceTransformer(SBertEcoder.SBERTODELPATH[language_code])
+        self.model = SentenceTransformer(SBertEcoder.SBERTODELPATHS[language_code])
         self.cleaner = Cleaner(language_code=self.language_code)
 
     def get_vector_size(self):

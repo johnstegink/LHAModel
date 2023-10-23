@@ -22,6 +22,7 @@ class USEEcoder(Documentencoder_base):
     def __init__(self, language_code):
         super(USEEcoder, self).__init__(language_code)
 
+        self.language_code = language_code
         self.model =  hub.load(self.module_urls[language_code])
         self.cleaner = Cleaner(language_code=self.language_code)
 
@@ -42,6 +43,9 @@ class USEEcoder(Documentencoder_base):
         # Reduce logging output.
         logging.set_verbosity(logging.ERROR)
         joined = " ".join( text) if type(text) == list else text
-        vector = self.model( joined)
+        if self.language_code == "en":
+            vector = self.model( [joined])
+        else:
+            vector = self.model( [joined])
 
         return vector            # return the vector

@@ -13,10 +13,10 @@ mkdir -p $SESSIONS_DIR
 
 for language in nl en
 do
-  for corpus in wikisim wire gWikimatch
+#  for corpus in wikisim wire gWikimatch
+  for corpus in wikisim wire
   do
-#    for method in word2vec sent2vec sbert use
-   for method in  use
+   for method in word2vec sent2vec sbert use
     do
       for sim in 30 50 70 80
       do
@@ -26,7 +26,8 @@ do
           do
             for sections in 9 12
             do
-              for nn_type in plain stat
+#              for nn_type in plain stat
+              for nn_type in plain
               do
                 combined="${language}_${corpus}_${method}_${sim}_${maxdoc}_${nn}_${sections}_${nn_type}"
 
