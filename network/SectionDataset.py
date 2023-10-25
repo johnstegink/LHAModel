@@ -90,13 +90,15 @@ class SectionDataset(torch.utils.data.IterableDataset):
                 if all(v == 0 for v in vector):
                     sim_matrix = numpy.zeros( src_vectors.shape[0], dest_vectors.shape[0])
 
-                if self.withmask:
-                    mask = np.zeros(vector.shape[0], dtype=float)
-                    mask[vector != 0.0] = 1
-                    vector += list(mask)
-                    rows.append((list(vector) + list(mask), pair.get_similarity(), f"{srcname} -> {destname}", f"{src} -- {dest}"))
-                else:
-                    rows.append((list(vector), pair.get_similarity(), f"{srcname} -> {destname}", f"{src} -- {dest}"))
+                nans = [True for val in vector if math.isnan(val)]
+                if len( nans) == 0:
+                    if self.withmask:
+                        mask = np.zeros(vector.shape[0], dtype=float)
+                        mask[vector != 0.0] = 1
+                        vector += list(mask)
+                        rows.append((list(vector) + list(mask), pair.get_similarity(), f"{srcname} -> {destname}", f"{src} -- {dest}"))
+                    else:
+                        rows.append((list(vector), pair.get_similarity(), f"{srcname} -> {destname}", f"{src} -- {dest}"))
 
 
 

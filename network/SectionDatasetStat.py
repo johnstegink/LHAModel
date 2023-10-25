@@ -1,4 +1,5 @@
 # Class implements a dataset for corpus files with statistical information. It uses a cache
+import math
 import pickle
 import torch
 import random
@@ -72,7 +73,9 @@ class SectionDatasetStat(torch.utils.data.IterableDataset):
                 else:
                     vector = [0.0, 0.0, 0.0, 0.0]
 
-                rows.append( (list(vector), pair.get_similarity(), f"{src} --> {dest} ", f"{src} --> {dest} "))
+                nans = [True for val in vector if math.isnan(val)]
+                if len( nans) == 0:
+                    rows.append( (list(vector), pair.get_similarity(), f"{src} --> {dest} ", f"{src} --> {dest} "))
                 progress.update()
 
         random.shuffle( rows)

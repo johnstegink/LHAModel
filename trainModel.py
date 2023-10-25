@@ -220,6 +220,7 @@ def evaluate_the_model( model, Y, X_test, latest_loss, results_file, titles, pai
 
 
 
+
 ## Main part
 if __name__ == '__main__':
     (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype, relations_file, output_dir) = read_arguments()
@@ -241,8 +242,11 @@ if __name__ == '__main__':
                                   cache_file=cache_file)
 
 
+
+
     X = torch.tensor( [data[0] for data in ds], dtype=torch.float32, device=device)
     Y = torch.tensor( [[data[1]] for data in ds], dtype=torch.float32, device=device)
+
     titles = [data[2] for data in ds]
     pairs = [data[3] for data in ds]
 
