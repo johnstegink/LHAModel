@@ -73,6 +73,7 @@ class SectionDatasetStat(torch.utils.data.IterableDataset):
                 else:
                     vector = [0.0, 0.0, 0.0, 0.0]
 
+                # Filter the nans
                 nans = [True for val in vector if math.isnan(val)]
                 if len( nans) == 0:
                     rows.append( (list(vector), pair.get_similarity(), f"{src} --> {dest} ", f"{src} --> {dest} "))

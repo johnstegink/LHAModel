@@ -48,4 +48,4 @@ class USEEcoder(Documentencoder_base):
         else:
             vector = self.model( [joined])
 
-        return vector            # return the vector
+        return vector.numpy().tolist()[0]            # return the vector
