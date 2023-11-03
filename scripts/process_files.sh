@@ -26,8 +26,7 @@ do
           do
             for sections in 9 12
             do
-#              for nn_type in plain stat
-              for nn_type in plain
+              for nn_type in plain stat
               do
                 combined="${language}_${corpus}_${method}_${sim}_${maxdoc}_${nn}_${sections}_${nn_type}"
 
@@ -54,4 +53,3 @@ do
   done
 done
 
-py

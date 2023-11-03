@@ -26,3 +26,6 @@
 /.idea/.idea/modules.xml
 /.idea/.idea/other.xml
 /.idea/.idea/vcs.xml
+/RESULTSDIR/results_gwikimatch_en_use_30_40_12_stat.tsv
+/RESULTSDIR/results_gwikimatch_en_use_30_40_12_stat.txt
+/en_wire_sent2vec.xlsx
