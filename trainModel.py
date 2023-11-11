@@ -11,6 +11,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from sklearn.model_selection import StratifiedKFold
+import statistics
 
 
 import functions
@@ -171,13 +173,13 @@ def create_heatmap(X, title, heatmap_dir, filename, predicted, actual):
     plt.savefig( os.path.join(dir ,filename))
 
 
-def evaluate_the_model( model, Y, X_test, latest_loss, results_file, titles, pairs, nr_of_heatmaps, batch_size, n_epochs, learning_rate, first):
+def calculate_metrics( model, Y, X_test):
     """
-    Make an evaluation of the model
+    Calculate the metrics and return a list with the metrics
     :param model:
     :param y:
     :param x_test:
-    :return:
+    :return: [F1, accuracy, precision, recall, tp, fp, fn]
     """
 
     # change the y_pred to 0 or 1
@@ -187,28 +189,42 @@ def evaluate_the_model( model, Y, X_test, latest_loss, results_file, titles, pai
     (precision, recall, F1, _) =sklearn.metrics.precision_recall_fscore_support( y_act, y_pred, average="binary")
     accuracy = sklearn.metrics.accuracy_score( y_act, y_pred)
 
-    to_be_created = min(nr_of_heatmaps, len(y_pred))
-    with tqdm(total=to_be_created, desc="Creating heatmaps") as progress:
-        for i in range(0, to_be_created):
-            title = titles[i] + " "
-            title += "(Equal)" if y_act[i] else "(NOT equal)"
-
-            filename = pairs[i] + ".png"
-            create_heatmap(X_test[i], title, heatmap_dir, filename, y_pred[i], y_act[i])
-
-            nr_of_heatmaps -= 1
-            progress.update()
-
-
     tp = fp = fn = 0
     for i in range(0, len(y_pred)):
         if y_pred[i] and y_act[i] : tp += 1
         elif y_pred[i] and not y_act[i]: fp += 1
         elif not y_pred[i] and y_act[i]: fn += 1
 
-    readable = f"Batch size: {batch_size}\nEpochs: {n_epochs}, Learning rate: {learning_rate}\nAccuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}\nLatest loss: {latest_loss}"
-    tsv = f"{batch_size}\t{n_epochs}\t{learning_rate}\t{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}\t{latest_loss}\n";
-    header = "Batch size\tEpochs\tLearning rate\tF1\tAccuracy\tPrecision\tRecall\tTrue Positives\tFalse Positives\tFalse Negatives\tLatest loss\n";
+
+
+    return [F1, accuracy, precision, recall, tp, fp, fn]
+
+
+
+
+def evaluate_the_model( metrics,  results_file, batch_size, n_epochs, learning_rate, first):
+    """
+    Make an evaluation of the model
+    :param metrics:
+    :param results_file:
+    :param batch_size:
+    :param n_epochs:
+    :param learning_rate:
+    :param first:
+    :return:
+    """
+
+    F1 = statistics.mean([m[0] for m in metrics])
+    accuracy = statistics.mean([m[1] for m in metrics])
+    precision = statistics.mean([m[2] for m in metrics])
+    recall = statistics.mean([m[3] for m in metrics])
+    tp = statistics.mean([m[4] for m in metrics])
+    fp = statistics.mean([m[5] for m in metrics])
+    fn = statistics.mean([m[6] for m in metrics])
+
+    readable = f"Batch size: {batch_size}\nEpochs: {n_epochs}, Learning rate: {learning_rate}\nAccuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}\n"
+    tsv = f"{batch_size}\t{n_epochs}\t{learning_rate}\t{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}\n"
+    header = "Batch size\tEpochs\tLearning rate\tF1\tAccuracy\tPrecision\tRecall\tTrue Positives\tFalse Positives\tFalse Negatives\n"
     print( readable)
 
     if first:
@@ -244,102 +260,84 @@ if __name__ == '__main__':
 
 
 
-    X = torch.tensor( [data[0] for data in ds], dtype=torch.float32, device=device)
-    Y = torch.tensor( [[data[1]] for data in ds], dtype=torch.float32, device=device)
-
+    X = [data[0] for data in ds]
+    Y = [data[1] for data in ds]
     titles = [data[2] for data in ds]
     pairs = [data[3] for data in ds]
-
-    # split the dataset into training and test sets
-    validation_start = len(X) - int(len(X) / 10)
-
-    X_train = X[:validation_start]
-    y_train = Y[:validation_start]
-    titles_train = titles[:validation_start]
-    pairs_train = pairs[:validation_start]
-    X_test = X[validation_start:]
-    Y_test = Y[validation_start:]
-    titles_test = titles[validation_start:]
-    pairs_test = pairs[validation_start:]
-
-
-    # Define the model
-    if nntype == "plain":
-        model = NeuralNetworkPlain(N)
-    elif nntype == "masked":
-        model = NeuralNetworkMask(N)
-    elif nntype == "stat":
-        model = NeuralNetworkTest(4)
-    elif nntype == "test":
-        model = NeuralNetworkTest(4)
-    else:
-        raise f"Unknown neural network type: {nntype}"
-
-    model.to(device)
 
     nr_of_heatmaps = 0
     plot_graph = False
     first = True
-    for batch_size in [20, 50, 100, 200]:
+    for batch_size in [20, 50, 100]:
         for n_epochs in [10, 60, 100, 200]:
             for learning_rate in [0.001, 0.01, 0.1]:
-                loss_fn = nn.BCELoss()  # binary cross entropy
-                optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+                # Define the model
+                if nntype == "plain":
+                    model = NeuralNetworkPlain(N)
+                elif nntype == "masked":
+                    model = NeuralNetworkMask(N)
+                elif nntype == "stat":
+                    model = NeuralNetworkTest(4)
+                elif nntype == "test":
+                    model = NeuralNetworkTest(4)
+                else:
+                    raise f"Unknown neural network type: {nntype}"
+                model.to(device)
 
-                batches_per_epoch = math.ceil(len(X_train) / batch_size)
+                metrics = []
+                skf = StratifiedKFold(n_splits=5)
+                skf.get_n_splits(X, Y)
+                for i, (train_index, test_index) in enumerate(skf.split(X, Y)):
+                    print(f"Fold {i}:")
 
-                # Train the model
-                losses = []
-                for epoch in range(n_epochs):
-                    for i in range( batches_per_epoch):
-                        start = i * batch_size
+                    TrainX = torch.tensor([X[i] for i in train_index], dtype=torch.float32, device=device)
+                    TrainY = torch.tensor([[Y[i]] for i in train_index], dtype=torch.float32, device=device)
+                    TestX  = torch.tensor([[X[i]] for i in test_index], dtype=torch.float32, device=device)
+                    TestY  = torch.tensor([[Y[i]] for i in test_index], dtype=torch.float32, device=device)
 
-                        # take a batch
-                        Xbatch = X_train[start:min(start + batch_size, len( X_train))]
-                        y_batch = y_train[start:min(start + batch_size, len( X_train))]
+                    loss_fn = nn.BCELoss()  # binary cross entropy
+                    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-                        # forward pass
-                        y_pred = model(Xbatch)
-                        loss = loss_fn(y_pred, y_batch)
+                    batches_per_epoch = math.ceil(len(TrainX) / batch_size)
 
-                        # backward pass
-                        optimizer.zero_grad()
-                        loss.backward()
+                    # Train the model
+                    losses = []
+                    for epoch in range(n_epochs):
+                        for i in range( batches_per_epoch):
+                            start = i * batch_size
 
-                        # update weights
-                        optimizer.step()
+                            # take a batch
+                            Xbatch = TrainX[start:min(start + batch_size, len( TrainX))]
+                            y_batch = TrainY[start:min(start + batch_size, len( TrainY))]
 
-                    epoch_loss = loss.item()
-                    losses.append( epoch_loss)
-                    # print(f'Finished epoch {epoch}, latest loss {epoch_loss}')
+                            # forward pass
+                            y_pred = model(Xbatch)
+                            loss = loss_fn(y_pred, y_batch)
 
-                latest_loss = epoch_loss
+                            # backward pass
+                            optimizer.zero_grad()
+                            loss.backward()
 
-                # Plot the loss graph.
-                if plot_graph:
-                    plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
-                    plt.xlabel('Epoch')
-                    plt.ylabel('Loss')
-                    plt.show()
+                            # update weights
+                            optimizer.step()
 
-                evaluate_the_model(
-                    model=model,
-                    X_test=X_test,
-                    Y=Y_test,
-                    latest_loss=latest_loss,
-                    titles=titles_test,
-                    pairs=pairs_test,
-                    results_file=results_file,
-                    nr_of_heatmaps=nr_of_heatmaps,
-                    first=first,
-                    batch_size=batch_size,
-                    n_epochs=n_epochs,
-                    learning_rate=learning_rate
-                )
-                first = False
+                    # Plot the loss graph.
+                    if plot_graph:
+                        plt.plot([epoch for epoch in range(n_epochs)], [loss for loss in losses])
+                        plt.xlabel('Epoch')
+                        plt.ylabel('Loss')
+                        plt.show()
 
+                    # get the metrics
+                    this_metric = calculate_metrics( model, TestY, TestX)
+                    metrics.append( this_metric)
 
-
-
-
-
+            evaluate_the_model(
+                metrics,
+                results_file=results_file,
+                first=first,
+                batch_size=batch_size,
+                n_epochs=n_epochs,
+                learning_rate=learning_rate
+            )
+            first = False

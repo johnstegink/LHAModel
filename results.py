@@ -50,8 +50,8 @@ def add_to_list(data, path):
                            "method": file_data[3],
                            "similarity": int(file_data[4]),
                            "maxdoc": int(file_data[5]),
-                           "n": int(file_data[6]),
-                           "nn": int(file_data[7]),
+                           "nn": int(file_data[6]),
+                           "n": int(file_data[7]),
                            "nntype": file_data[8],
                            "batchsize": int(content_data[0]),
                            "epochs": int(content_data[1]),
@@ -60,10 +60,9 @@ def add_to_list(data, path):
                            "accuracy": float(content_data[4]),
                            "precision": float(content_data[5]),
                            "recall": float(content_data[6]),
-                           "truepositives": int(content_data[7]),
-                           "falsepositives": int(content_data[8]),
-                           "falsenegatives": int(content_data[9]),
-                           "latestloss": float(content_data[9])
+                           "truepositives": float(content_data[7]),
+                           "falsepositives": float(content_data[8]),
+                           "falsenegatives": float(content_data[9]),
                            }
                 data.append(new_row)
             else:
@@ -84,7 +83,7 @@ if __name__ == '__main__':
     df = pandas.DataFrame( data)
 
     if type == "sql":
-        table_name = "results"
+        table_name = "resultsK5"
         sqlEngine = create_engine(output_file, pool_recycle=3600)
         dbConnection = sqlEngine.connect()
         df = pandas.DataFrame(data)

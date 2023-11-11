@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Processes a single file usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>] [-r <NN_type>]
 
-BASEDIR=/Volumes/Extern/Studie/studie
+BASEDIR=/Volumes/Extern/Studie/studie/tijdelijk
 HTMLDIR="${BASEDIR}/html"
 NROFSECTIONS=12
 NEARESTNEIGHBORS=10
@@ -105,11 +105,11 @@ fi
 
 # create the section relations if they do not exist
 SECTIONSFILE="${BASEDIR}/sections/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}_pairsonly.xml"
-echo "$VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS # -d $HTMLDIR"
+echo "$VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS  -d $HTMLDIR"
 echo "..."
 
 if [ ! -f "$SECTIONSFILE" ]; then
-  $VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS # -d $HTMLDIR
+  $VENVDIR/python LHA_Phase2.py -c $CORPUSDIR -i $VECTORFILE -r $RELATIONSFILE -s $SIM -o $SECTIONSFILE -k $NEARESTNEIGHBORS -d $HTMLDIR
 else
   echo "  -- Sections file: ${SECTIONSFILE} already exists"
 fi

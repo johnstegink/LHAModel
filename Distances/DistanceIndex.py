@@ -1,6 +1,5 @@
 # Class that contains functionality for computing the distance
 import numpy as np
-import pandas as pd
 import sklearn
 from tqdm import *
 
