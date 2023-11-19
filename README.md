@@ -1,23 +1,34 @@
 # SADDLE
 
-This project contains the implementation of SADDLE, an algorithm for finding section similarities in document pairs. These section similarities are used to improve finding new document pairs. It is based on the Large-scale Hierarchical Alignment (LHA) algorithm [Nikolov and Hahnloser, 2018]. As input, it uses Wikipedia articles in either English or Dutch. The algorithm can easily be altered to use other languages, too.
+This project contains the implementation of SADDLE, an algorithm for finding section similarities in
+document pairs. These section similarities are used to improve finding new document pairs. 
+It is based on the Large-scale Hierarchical Alignment (LHA) algorithm [Nikolov and Hahnloser, 2018]. 
+As input, it uses Wikipedia articles in either English or Dutch. The algorithm can easily be altered to 
+use other languages, too. The image below depicts the SADDLE architecture.
 
-The algorithm consists of three phases. In phase one, the Wikipedia articles are read from a corpus file created by the Corpus tools (http://). The documents are cleaned up after reading by removing Wikipedia markup and special characters. The last step of phase one creates an embedding of the document and the sections. This embedding is constructed by using one of the following algorithms:
+![Architecture](images/saddle_phase_2.drawio.png)
+
+The algorithm consists of three phases. In phase one, the Wikipedia articles are read from a corpus 
+file created by the Corpus tools (http://). The documents are cleaned up after reading by removing 
+Wikipedia markup and special characters. The last step of phase one creates an embedding of the document 
+and the sections. This embedding is constructed by using one of the following algorithms:
 - Word2Vec: [Mikolov et al., 2013]
 - Sent2Vec: [Pagliardini et al., 2017]
 - USE: [Cer et al., 2018]
 - Sentence BERT: [Reimers and Gurevych, 2019]
 
-The code can easily be extended to use other embedding methods. The embedding is used to find potential document pairs by using cosine similarity combined with a threshold.
-The second phase uses the section embeddings of the document pairs to align sections. For testing purposes, an interactive HTML "application" can be created to visualize the relations between documents dynamically.
+The code can easily be extended to use other embedding methods. The embedding is used to find potential 
+document pairs by using cosine similarity combined with a threshold.
+The second phase uses the section embeddings of the document pairs to align sections. 
+For testing purposes, an interactive HTML "application" can be created to visualize the 
+section relations between documents dynamically.
 
-[Filmpje]
-
-
-
+[![Demo of functionality](images/demo.png)](images/demo.mp4 "Demo of functionality")
 
 
 ## Data
+Two dataset were used to train SADDLE, WiRe en WikiSim. The datasets were created by the Corpus tools.
+
 The scripts combine input from various sources into a corpus. The combination of the sources per tool is depicted 
 in the diagram below: 
 

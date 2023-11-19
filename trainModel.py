@@ -38,15 +38,20 @@ def read_arguments():
     parser.add_argument('-m', '--heatmap_dir', help='The directory containing the images with the heatmaps', required=True)
     parser.add_argument('-t', '--transformation', help='The transformation to apply to sections with an index larger than N', required=F, choices=['truncate', 'avg'])
     parser.add_argument('-o', '--results_dir', help='The director containing the results', required=True)
+    parser.add_argument('-mo', '--models_dir', help='The director containing the models, optional', required=False)
+
 
     args = vars(parser.parse_args())
 
     os.makedirs( args["cache_dir"], exist_ok=True)
     os.makedirs( args["results_dir"], exist_ok=True)
+    if not args["models_dir"] is None:
+        os.makedirs( args["models_dir"], exist_ok=True)
+
     if os.path.exists( args["heatmap_dir"]):
         functions.remove_redirectory_recursivly(args["heatmap_dir"])
 
-    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"], args["neuralnetworktype"].lower(), args["relationsfile"], args["results_dir"])
+    return ( args["sections"], args["corpus_dir"], args["cache_dir"], args["vectors_dir"], args["transformation"], args["heatmap_dir"], args["neuralnetworktype"].lower(), args["relationsfile"], args["results_dir"], args["models_dir"])
 
 class NeuralNetworkPlain(nn.Module):
     """
@@ -58,9 +63,6 @@ class NeuralNetworkPlain(nn.Module):
         self.hidden1 = nn.Linear(N*N, 5)
         self.dropout1 = nn.Dropout(0.0)
         self.act1 = nn.ReLU()
-        # self.hidden2 = nn.Linear(N, 5)
-        # self.dropout2 = nn.Dropout(0.1)
-        # self.act2 = nn.ReLU()
         self.output = nn.Linear(5, 1)
         self.act_output = nn.Sigmoid()
 
@@ -70,8 +72,6 @@ class NeuralNetworkPlain(nn.Module):
     def forward(self, x):
         x1 = self.act1(self.hidden1(x))
         do1 = self.dropout1(x1)
-        # x2 = self.act2(self.hidden2(do1))
-        # do2 = self.dropout2(x2)
         x_out = self.act_output(self.output(do1))
 
         return x_out
@@ -239,7 +239,7 @@ def evaluate_the_model( metrics,  results_file, batch_size, n_epochs, learning_r
 
 ## Main part
 if __name__ == '__main__':
-    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype, relations_file, output_dir) = read_arguments()
+    (N, corpusdir, cache_dir, vectors_dir, transformation, heatmap_dir, nntype, relations_file, output_dir, models_dir) = read_arguments()
 
     device = torch.device("cpu")
 
@@ -332,7 +332,13 @@ if __name__ == '__main__':
                     this_metric = calculate_metrics( model, TestY, TestX)
                     metrics.append( this_metric)
 
-            evaluate_the_model(
+                    # Save the model if wanted
+                    if not models_dir is None:
+                        model_file = f"{os.path.basename(relations_file).split('.')[0]}_{batch_size}_{n_epochs}_{learning_rate}.pt";
+                        torch.save( model, os.path.join(models_dir, model_file))
+
+
+                evaluate_the_model(
                 metrics,
                 results_file=results_file,
                 first=first,
@@ -340,4 +346,6 @@ if __name__ == '__main__':
                 n_epochs=n_epochs,
                 learning_rate=learning_rate
             )
+
+
             first = False
