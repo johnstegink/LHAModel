@@ -119,6 +119,8 @@ def sections_in_middle(vector, N, nr_of_sections, connected_to, value_function):
 
     return vector
 
+
+
 def sections_at_end(vector, N, nr_of_sections, connected_to, value_function):
     """
     Creates a list of scores where sections in the middle have good matches
@@ -217,29 +219,33 @@ if __name__ == '__main__':
     model = torch.load( model_file);
     nr_of_iterations = 1000
 
+    lines = []
+    score = get_score(initial_vector, model, N, nr_of_iterations)
+    lines.append(f"None & - & none & - & {score}")
+
     for value_type in ["high", "medium"]:
         value_function = high_score if value_type == "high" else medium_score
 
-        inital_score = get_score(initial_vector, model, N, nr_of_iterations)
-        print(f"Initial vector: {inital_score}")
 
         for connect in range(1, N):
             score = get_score(functools.partial(sections_at_start, nr_of_sections=N, connected_to=connect, value_function=value_function), model, N,
                               nr_of_iterations)
-            print(f"All sections connected to {connect} sections with {value_type} values: {score}")
+            lines.append(f"All & {value_type} & all & {connect} & {round(score, 2)}")
 
         for count in range(1, 5):
             for connect in range( 1, count):
                 score = get_score(functools.partial(sections_at_start, nr_of_sections=count, connected_to=connect, value_function=value_function), model, N, nr_of_iterations)
-                print(f"{count} sections connected to {connect} sections with {value_type} values, at start: {score}")
+                lines.append(f"Start & {value_type} & {count} & {connect} & {round(score, 2)}")
 
         for count in range(1, 5):
             for connect in range( 1, count):
                 score = get_score(functools.partial(sections_in_middle, nr_of_sections=count, connected_to=connect, value_function=value_function), model, N, nr_of_iterations)
-                print(f"{count} sections connected to {connect} sections with {value_type} values, at middle: {score}")
+                lines.append(f"Middle & {value_type} & {count} & {connect} & {round(score, 2)}")
 
         for count in range(1, 5):
             for connect in range( 1, count):
                 score = get_score(functools.partial(sections_at_end, nr_of_sections=count, connected_to=connect, value_function=value_function), model, N, nr_of_iterations)
-                print(f"{count} sections connected to {connect} sections with {value_type} values, at end: {score}")
+                lines.append(f"End & {value_type} & {count} & {connect} & {round(score, 2)}")
 
+    for line in lines:
+        print( line + "\\\\ \hline")
