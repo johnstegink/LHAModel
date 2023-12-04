@@ -28,7 +28,7 @@ def read_arguments():
     :return:
     """
 
-    parser = argparse.ArgumentParser(description='Create a histogram containing the count of the sections per corpus')
+    parser = argparse.ArgumentParser(description='Train the optimal model')
     parser.add_argument('-N', '--sections', help='The number of sections to consider', required=True, type=int)
     parser.add_argument('-c', '--corpus_dir', help='The directory of the corpus to train on', required=True)
     parser.add_argument('-nn', '--neuralnetworktype', help='The type of neural network', required=True, choices=["plain", "masked", "lstm", "stat", "test"])
