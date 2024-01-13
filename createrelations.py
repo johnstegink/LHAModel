@@ -55,7 +55,7 @@ if __name__ == '__main__':
     distance_index.build()
 
     if corpus_pairs:
-        pairs = corpus.read_document_pairs(False)
+        pairs = corpus.read_document_pairs()
     else:
         pairs = None
 

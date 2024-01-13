@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
         counter = 0
         error = 0
-        for pair in corpus.read_document_pairs(False):
+        for pair in corpus.read_document_pairs():
             if( corpus.has_document( pair.get_src())  and corpus.has_document( pair.get_dest())):
                 counter += 1
             else:

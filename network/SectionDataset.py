@@ -64,7 +64,7 @@ class SectionDataset(torch.utils.data.IterableDataset):
         """
 
         rows = []
-        for pair in corpus.read_document_pairs( True):
+        for pair in corpus.read_document_pairs():
             src = pair.get_src()
             dest = pair.get_dest()
 

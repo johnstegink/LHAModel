@@ -130,7 +130,7 @@ if __name__ == '__main__':
         corpus = Corpus(directory=os.path.join( corpora_dir, f"{corpusname}_{language}" ))
 
         print("Reading document pairs")
-        pairs = corpus.read_document_pairs(True)
+        pairs = corpus.read_document_pairs()
 
         print(f"Reading vectors: {corpusname} {language} {method}")
         dv = DocumentVectors.read( os.path.join( vector_dir, f"{corpusname}_{language}_{method}.xml"))

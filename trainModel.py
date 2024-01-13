@@ -202,7 +202,7 @@ def calculate_metrics( model, Y, X_test):
 
 
 
-def evaluate_the_model( metrics,  results_file, batch_size, n_epochs, learning_rate, first):
+def evaluate_the_model( model, X, Y, metrics,  results_file, batch_size, n_epochs, learning_rate, first):
     """
     Make an evaluation of the model
     :param metrics:
@@ -214,13 +214,20 @@ def evaluate_the_model( metrics,  results_file, batch_size, n_epochs, learning_r
     :return:
     """
 
-    F1 = statistics.mean([m[0] for m in metrics])
-    accuracy = statistics.mean([m[1] for m in metrics])
-    precision = statistics.mean([m[2] for m in metrics])
-    recall = statistics.mean([m[3] for m in metrics])
-    tp = statistics.mean([m[4] for m in metrics])
-    fp = statistics.mean([m[5] for m in metrics])
-    fn = statistics.mean([m[6] for m in metrics])
+    y_pred = []
+    y_act = []
+    for i in range( len(X)):
+        x = torch.tensor([X[i]], dtype=torch.float32, device=device);
+        y_pred.append( float(model(x)[0]) >= 0.5)
+        y_act.append( Y[i] >= 0.5)
+
+    F1 = sklearn.metrics.f1_score( y_act, y_pred)
+    accuracy = sklearn.metrics.accuracy_score( y_act, y_pred)
+    precision = sklearn.metrics.precision_score(y_act, y_pred)
+    recall = sklearn.metrics.recall_score(y_act, y_pred)
+    tp = sum( [1 for i in range(len(X)) if y_pred[i] and y_act[i]])
+    fp = sum( [1 for i in range(len(X)) if y_pred[i] and not y_act[i]])
+    fn = sum( [1 for i in range(len(X)) if not y_pred[i] and y_act[i]])
 
     readable = f"Batch size: {batch_size}\nEpochs: {n_epochs}, Learning rate: {learning_rate}\nAccuracy: {accuracy * 100:.2f}%\ntp: {tp}, \nfp:{fp}\nF1:{F1 * 100:.2f}\nPrecision: {precision}\nRecall: {recall}\n"
     tsv = f"{batch_size}\t{n_epochs}\t{learning_rate}\t{F1}\t{accuracy}\t{precision}\t{recall}\t{tp}\t{fp}\t{fn}\n"
@@ -259,13 +266,19 @@ if __name__ == '__main__':
 
 
 
-
+    nr_of_heatmaps = 0
+    trainingset_percentage = 80  # percentage of the dataset that is used for training
     X = [data[0] for data in ds]
     Y = [data[1] for data in ds]
-    titles = [data[2] for data in ds]
-    pairs = [data[3] for data in ds]
 
-    nr_of_heatmaps = 0
+
+    # Make a training set and a testset
+    trainingset_size = int(len(X) * .80)
+    X_test = X[(trainingset_size + 1):]
+    X = X[:trainingset_size]
+    Y_test = Y[(trainingset_size + 1):]
+    Y = Y[:trainingset_size]
+
     plot_graph = False
     first = True
     for batch_size in [20, 50, 100]:
@@ -339,7 +352,10 @@ if __name__ == '__main__':
 
 
                 evaluate_the_model(
-                metrics,
+                model = model,
+                X=X_test,
+                Y=Y_test,
+                metrics = metrics,
                 results_file=results_file,
                 first=first,
                 batch_size=batch_size,

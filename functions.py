@@ -198,14 +198,14 @@ def write_article_pairs( corpusdir, info):
         file.write(f"{record[0]}\t{record[1]}\t{record[2]}\n")
     file.close()
 
-def read_article_pairs( corpusdir):
+def read_article_pairs( corpusdir, filename="pairs.tsv"):
     """
     Read a .tsv with articlepairs to the corpus, created by write_article_pairs
     :param corpusdir: Directory containing the corpus
     :return: list of tuples (id1, id2, similarity) where similarity is 0 or 1
     """
 
-    file = open(os.path.join(corpusdir, "pairs.tsv"), mode="r", encoding="utf-8-sig")
+    file = open(os.path.join(corpusdir, filename), mode="r", encoding="utf-8-sig")
     lines = file.readlines();
     file.close()
 

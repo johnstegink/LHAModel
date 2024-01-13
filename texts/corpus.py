@@ -1,5 +1,8 @@
 # Class to read a corpus in the Common Format and iterates through documents
+import os.path
 import random
+
+import sklearn.model_selection
 
 import functions
 from Distances.DocumentRelations import DocumentRelations
@@ -184,18 +187,80 @@ class Corpus:
                 sims.add( src, dest, 0)
 
 
-    def read_document_pairs(self, shuffled):
+    def read_document_pairs(self, shuffled, training_set=True, test_set=True):
         """
         returns the document pairs of the corpus that have manually been annotated
-        :param shuffled: If true the set will be shuffled
+        :param training_set: if true the training set will be included
+        :param test_set: if true the test set will be included
         :return: Documentrelations object
         """
 
         dv = DocumentRelations([])
-        pairs = functions.read_article_pairs( self.directory)
-        if shuffled: random.shuffle( pairs)
+        self.create_training_test_pairs()
+        pairs = []
+        if training_set:
+            pairs += functions.read_article_pairs( self.directory, "pairs_train.tsv")
+
+        if test_set:
+            pairs += functions.read_article_pairs( self.directory, "pairs_test.tsv")
 
         for pair in pairs:
             dv.add( pair[0], pair[1], pair[2])
 
         return dv
+
+
+    def create_training_test_pairs(self):
+        """
+        Create a training set and a test set if the files are older
+        than the pairs file
+        :return:
+        """
+
+        pairs_file = os.path.join(self.directory, "pairs.tsv")
+        train_file = os.path.join(self.directory, "pairs_train.tsv")
+        test_file = os.path.join(self.directory, "pairs_test.tsv")
+
+        # Create new files, only if neccesairy
+        if not self.file_exists_or_is_newer( train_file, pairs_file) or not self.file_exists_or_is_newer( test_file, pairs_file):
+            pairs = functions.read_article_pairs( self.directory)
+            X = []
+            Y = []
+            for pair in pairs:
+                X.append( (pair[0], pair[1]))
+                Y.append( pair[2])
+
+            X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split( X, Y, test_size=0.15, )
+            self.write_pairs( X_train, Y_train, "pairs_train.tsv")
+            self.write_pairs( X_test, Y_test, "pairs_test.tsv")
+
+
+    def file_exists_or_is_newer(self, file, cmpfile):
+        """
+        Checks wether a file exists or is newer than the cmpfile
+        :param file:
+        :param cmpfile:
+        :return:
+        """
+
+        if not os.path.isfile( file):
+            return False
+
+        return os.path.getmtime( file) > os.path.getmtime( cmpfile)
+
+    def write_pairs(self, file, X, Y):
+        """
+        Write the pairs aftere splitting into to a file
+        :param file:
+        :param X:
+        :param Y:
+        :return:
+        """
+
+        lines = ""
+        for i in range(len(X)):
+            lines += f"{X[0]}\t{X[1]}\t{Y}\n"
+
+        with open( file, "w") as f:
+            f.write( lines)
+

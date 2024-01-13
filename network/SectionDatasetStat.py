@@ -48,7 +48,7 @@ class SectionDatasetStat(torch.utils.data.IterableDataset):
         print("Reading document relations")
         dsr = DocumentSectionRelations.read( relationsfile)
         print("Reading document pairs")
-        pairs = corpus.read_document_pairs( True)
+        pairs = corpus.read_document_pairs()
         with tqdm(total=len( pairs), desc="Creating stat vectors") as progress:
             for pair in pairs:
                 src = pair.get_src()
