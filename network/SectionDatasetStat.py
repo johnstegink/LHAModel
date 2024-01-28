@@ -16,17 +16,19 @@ from statistics import mean
 
 class SectionDatasetStat(torch.utils.data.IterableDataset):
 
-    def __init__(self, device, corpus_dir, relations_file, top_threshold, cache_file):
+    def __init__(self, device, corpus_dir, relations_file, top_threshold, cache_file, train):
         """
         :param device: the device to put the tensors on
         :param corpus_dir: the directory with the corpus containing the document pairs
         :param top_threshold: The threshold to be considered the top of the document
         :param relations_file: the xml file containing the relations between the documents
         :param cache_file: The cachefile containing a cached version of the similarity graph
+        :param train: True = training set, False = test set
         """
 
         super(SectionDatasetStat).__init__()
 
+        self.training_set = train
         self.device = device
         self.top_threshold = top_threshold
         if not os.path.isfile( cache_file):
@@ -48,7 +50,7 @@ class SectionDatasetStat(torch.utils.data.IterableDataset):
         print("Reading document relations")
         dsr = DocumentSectionRelations.read( relationsfile)
         print("Reading document pairs")
-        pairs = corpus.read_document_pairs()
+        pairs = corpus.read_document_pairs(shuffled=True,training_set=self.training_set, test_set=(not self.training_set))
         with tqdm(total=len( pairs), desc="Creating stat vectors") as progress:
             for pair in pairs:
                 src = pair.get_src()

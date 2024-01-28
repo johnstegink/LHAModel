@@ -83,7 +83,7 @@ if __name__ == '__main__':
     df = pandas.DataFrame( data)
 
     if type == "sql":
-        table_name = "resultsK5"
+        table_name = "resultsTT"
         sqlEngine = create_engine(output_file, pool_recycle=3600)
         dbConnection = sqlEngine.connect()
         df = pandas.DataFrame(data)

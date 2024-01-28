@@ -16,7 +16,7 @@ from statistics import mean
 
 class SectionDataset(torch.utils.data.IterableDataset):
 
-    def __init__(self, N, device, corpus_dir, documentvectors_dir, nntype, transformation, cache_file):
+    def __init__(self, N, device, corpus_dir, documentvectors_dir, nntype, transformation, cache_file, train):
         """
         :param N: the maximum number of sections i.e. the size of the vector will be NxN
         :param device: the device to put the tensors on
@@ -27,12 +27,14 @@ class SectionDataset(torch.utils.data.IterableDataset):
                                - truncate: elements having index > (N-1) are discarded
                                - last:     element (N-1) is the average of all elements having index > (N -1)
         :param cache_file: The cachefile containing a cached version of the similarity graph
+        :param train: True = training set, False = test set
         """
 
         super(SectionDataset).__init__()
 
 
         self.N = N
+        self.training_set = train
         if not nntype in ["plain", "masked"]:
             raise f"Unknown nntype: {transformation}, only 'plain' or 'masked' are allowed"
 
@@ -64,7 +66,7 @@ class SectionDataset(torch.utils.data.IterableDataset):
         """
 
         rows = []
-        for pair in corpus.read_document_pairs():
+        for pair in corpus.read_document_pairs(shuffled=True, training_set=self.training_set, test_set=(not self.training_set)):
             src = pair.get_src()
             dest = pair.get_dest()
 

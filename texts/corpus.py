@@ -221,7 +221,7 @@ class Corpus:
         train_file = os.path.join(self.directory, "pairs_train.tsv")
         test_file = os.path.join(self.directory, "pairs_test.tsv")
 
-        # Create new files, only if neccesairy
+        # Create new files, only if necessary
         if not self.file_exists_or_is_newer( train_file, pairs_file) or not self.file_exists_or_is_newer( test_file, pairs_file):
             pairs = functions.read_article_pairs( self.directory)
             X = []
@@ -231,8 +231,8 @@ class Corpus:
                 Y.append( pair[2])
 
             X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split( X, Y, test_size=0.15, )
-            self.write_pairs( X_train, Y_train, "pairs_train.tsv")
-            self.write_pairs( X_test, Y_test, "pairs_test.tsv")
+            self.write_pairs( "pairs_train.tsv", X_train, Y_train )
+            self.write_pairs( "pairs_test.tsv", X_test, Y_test )
 
 
     def file_exists_or_is_newer(self, file, cmpfile):
@@ -257,10 +257,9 @@ class Corpus:
         :return:
         """
 
-        lines = ""
+        contents = ""
         for i in range(len(X)):
-            lines += f"{X[0]}\t{X[1]}\t{Y}\n"
+            contents += f"{X[i][0]}\t{X[i][1]}\t{Y[i]}\n"
 
-        with open( file, "w") as f:
-            f.write( lines)
+        functions.write_file(  os.path.join( self.directory, file), contents)
 

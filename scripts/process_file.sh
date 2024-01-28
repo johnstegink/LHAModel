@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Processes a single file usage: process_file -c <corpus> -m <encoding method> [-s <Sim>] [-d <MaxDoc>] [-n NearestNeighbours] [-t <NrOfSecions>] [-r <NN_type>]
 
-BASEDIR=/Volumes/Extern/Studie/studie/tijdelijk
+BASEDIR=/Volumes/Extern/Studie/studie
 HTMLDIR="${BASEDIR}/html"
 NROFSECTIONS=12
 NEARESTNEIGHBORS=10
@@ -116,10 +116,11 @@ fi
 
 HEATMAPDIR="${BASEDIR}/heatmaps/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}"
 SCRATCHDIR="${BASEDIR}/scratch/${CORPUS}_${METHOD}_${SIM}_${MAXDOC}_${NEARESTNEIGHBORS}"
+MODELSDIR="${BASEDIR}/models"
 
 echo "-N $NROFSECTIONS -c $CORPUSDIR -nn $NN_TYPE -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o ${RESULTSDIR}"
 echo "..."
-$VENVDIR/python trainModel.py -N $NROFSECTIONS -c $CORPUSDIR -nn $NN_TYPE -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o $RESULTSDIR
+$VENVDIR/python trainModel.py -N $NROFSECTIONS -c $CORPUSDIR -nn $NN_TYPE -s $SCRATCHDIR -v $VECTORFILE -r $SECTIONSFILE -m $HEATMAPDIR -t truncate -o $RESULTSDIR -mo $MODELSDIR
 
 echo "$VENVDIR/python results.py -d $RESULTSDIR -t excel -o ${FINAL_DIR}/${FINAL_FILE}"
 echo "..."
