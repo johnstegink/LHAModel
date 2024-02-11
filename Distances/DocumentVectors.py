@@ -1,4 +1,6 @@
 # Class to read and write documentvectors
+import gc
+import pickle
 
 from Distances.DocumentVector import DocumentVector
 from lxml import etree as ET
@@ -7,8 +9,8 @@ import functions
 import re
 
 class DocumentVectors:
-    def __init__(self):
-        self.vectors = {}
+    def __init__(self, vectors):
+        self.vectors = vectors
 
     def add(self, documentid, vector):
         """
@@ -47,18 +49,20 @@ class DocumentVectors:
 
 
 
-    def save(self, file):
+    def save(self, filename):
         """
         Save the vectors in the given Xml file
         :param file:the output file
         :return:
         """
 
-        root = ET.fromstring("<documents></documents>")
+        file = open(filename, mode="w", encoding="utf-8-sig")
+        file.write("<documents>\n")
+
         for vector in self.vectors.values():
             vectorValue = vector.get_vector()
             if hasattr(vectorValue, '__iter__'):
-                document = ET.SubElement(root, "document")
+                document = ET.fromstring("<document></document>")
                 ET.SubElement(document, "id").text = vector.get_id()
                 # Comma seperated vector
                 ET.SubElement(document, "vector").text = ",".join([str(value) for value in vectorValue])
@@ -68,8 +72,16 @@ class DocumentVectors:
                 for (section_index, section_vector) in vector.get_sections():
                     ET.SubElement(sections, "section", attrib={"index": str(section_index)}).text = ",".join([str(value) for value in section_vector])
 
+                file.write( functions.xml_as_string(document))
+                del document
+
+
+        # Write the end of the file
+        file.write("</documents>\n")
+        file.close()
+
         # Write the file
-        functions.write_file( file, functions.xml_as_string(root))
+        functions.write_pickle(filename, self.vectors)
 
 
     @staticmethod
@@ -80,18 +92,27 @@ class DocumentVectors:
         :param id_filter: regular expression that filters the ids
         :return: DocumentVectors object
         """
-        dv = DocumentVectors()
-        root = ET.parse(file).getroot()
-        for document in root:
-            id = document.find("id").text
-            if id_filter is None or id_filter.match( id):
-                if not document.find("vector").text is None:
-                    vector = [float(value) for value in document.find("vector").text.split(",")]
-                    dv.add( id, vector)
-                    for section in (document.find("sections").findall("section")):
-                        if not section.text is None:
-                            sectionvector = [float(value) for value in section.text.split(",")]
-                            dv.add_section( id, sectionvector)
+
+        dv = functions.read_from_pickle(file)
+        if dv is None:
+            dv = DocumentVectors({})
+            root = ET.parse(file).getroot()
+            for document in root:
+                id = document.find("id").text
+                if id_filter is None or id_filter.match( id):
+                    if not document.find("vector").text is None:
+                        vector = [float(value) for value in document.find("vector").text.split(",")]
+                        dv.add( id, vector)
+                        for section in (document.find("sections").findall("section")):
+                            if not section.text is None:
+                                sectionvector = [float(value) for value in section.text.split(",")]
+                                dv.add_section( id, sectionvector)
+            functions.write_pickle( file, dv)
+
+            del root
+
+        else:
+            if type(dv).__name__ == 'dict': dv = DocumentVectors(dv)
 
         return dv
 
@@ -120,6 +141,27 @@ class DocumentVectors:
         for vector in self.vectors.values():
             indexes.append( vector.documentid)
             matrix.append(vector.vector)
+
+        return (indexes, matrix)
+
+
+
+    def get_index_and_matrix_for_list(self, ids):
+        """
+        Returns a matrix with all values of all vectors with the given ids
+        The indexes are the documentids in the rows
+        :param src: src id
+        :param dest_list: list of destination ids
+        :return: (indexes, matrix)
+        """
+
+        indexes = []
+        matrix = []
+
+        for vector in self.vectors.values():
+            if vector.get_id() in ids:
+                indexes.append( vector.documentid)
+                matrix.append(vector.vector)
 
         return (indexes, matrix)
 

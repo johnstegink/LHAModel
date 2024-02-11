@@ -1,5 +1,6 @@
 import hashlib
 import os
+import pickle
 import shutil
 import sys
 from pathlib import Path
@@ -74,6 +75,19 @@ def write_file(filename, contents):
     """
 
     file = open( filename, mode="w", encoding="utf-8-sig")
+    file.write( contents)
+    file.close()
+
+
+def append_file(filename, contents):
+    """
+    Write text contents to a file
+    :param filename: path to the file
+    :param contents: textcontents
+    :return: -
+    """
+
+    file = open( filename, mode="a", encoding="utf-8-sig")
     file.write( contents)
     file.close()
 
@@ -184,14 +198,14 @@ def write_article_pairs( corpusdir, info):
         file.write(f"{record[0]}\t{record[1]}\t{record[2]}\n")
     file.close()
 
-def read_article_pairs( corpusdir):
+def read_article_pairs( corpusdir, filename="pairs.tsv"):
     """
     Read a .tsv with articlepairs to the corpus, created by write_article_pairs
     :param corpusdir: Directory containing the corpus
     :return: list of tuples (id1, id2, similarity) where similarity is 0 or 1
     """
 
-    file = open(os.path.join(corpusdir, "pairs.tsv"), mode="r", encoding="utf-8-sig")
+    file = open(os.path.join(corpusdir, filename), mode="r", encoding="utf-8-sig")
     lines = file.readlines();
     file.close()
 
@@ -217,3 +231,114 @@ def copy_dir( src_dir, dest_dir):
         if os.path.isfile(source):
             shutil.copy(source, destination)
 
+
+def __determine_pickle_filename(file, suffix):
+    """
+    Determine the filename used for the pickl
+    :param file:
+    :param suffix: an optional suffix
+    :return:
+    """
+
+    base = os.path.splitext(file)[0]
+    if not suffix is None:
+        base += "_" + suffix
+    return  base + ".pkl"
+
+
+def write_pickle( file, data, suffix=None):
+    """
+    Write to a pickle file
+    :param file:
+    :param data:
+    :param suffix: optional suffix
+    :return:
+    """
+
+    with open( __determine_pickle_filename(file, suffix) , "wb") as pickle_file:
+        pickle.dump( data, pickle_file)
+
+
+def read_from_pickle( file, suffix=None):
+    """
+    Read the data from a pickle file if it is newer than the original file
+    :param file:
+    :return: (data, labels)
+    """
+
+
+    pickle_name = __determine_pickle_filename(file, suffix)
+    # Pickl file is newer than xml-file
+    if os.path.exists( pickle_name) and os.path.getmtime( file) < os.path.getmtime( pickle_name):
+        with open(pickle_name, "rb") as pickle_file:
+            return pickle.load(pickle_file)
+    else:
+        return None
+
+
+def count_elements(xml_file, element):
+    """
+    Count the occurences of elements in the Xml file
+    :param xml_file:
+    :param element:
+    :return:
+    """
+
+    open_without_attributes = f"<{element}>"
+    open_with_attributes = f"<{element} "
+    count = 0
+    with open(xml_file, 'r') as file:
+        for line in file:
+            count += line.count(open_without_attributes) + line.count(open_with_attributes)
+
+    return count
+
+
+def iterate_xml(xmlfile):
+    """
+    Iterate the Xml file (copied from https://stackoverflow.com/questions/9856163/using-lxml-and-iterparse-to-parse-a-big-1gb-xml-file)
+    the element of level 2 is used. Not the whole file is read into memory
+    :param xmlfile:
+    :return:
+    """
+    doc = ET.iterparse(xmlfile, events=('start', 'end'))
+    _, root = next(doc)
+    start_tag = None
+    for event, element in doc:
+        if event == 'start' and start_tag is None:
+            start_tag = element.tag
+        if event == 'end' and element.tag == start_tag:
+            yield element
+            start_tag = None
+            root.clear()
+
+
+
+def cosine_similarity(A):
+    """
+    Calculate cosine similarity 30x faster than sklearn
+    https://stackoverflow.com/questions/17627219/whats-the-fastest-way-in-python-to-calculate-cosine-similarity-given-sparse-mat
+    :param A:
+    :param T:
+    :return:
+    """
+    # base similarity matrix (all dot products)
+    similarity = np.dot(A, A.T)
+
+    # squared magnitude of preference vectors (number of occurrences)
+    square_mag = np.diag(similarity)
+
+    # inverse squared magnitude
+    inv_square_mag = 1 / square_mag
+
+    # if it doesn't occur, set it's inverse magnitude to zero (instead of inf)
+    inv_square_mag[np.isinf(inv_square_mag)] = 0
+
+    # inverse of the magnitude
+    inv_mag = np.sqrt(inv_square_mag)
+
+    # cosine similarity (elementwise multiply by inverse magnitudes)
+    cosine = similarity * inv_mag
+    cosine = cosine.T * inv_mag
+
+    return cosine

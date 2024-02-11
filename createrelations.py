@@ -23,6 +23,7 @@ def read_arguments():
     parser.add_argument('-s', '--similarity', help='Minimum similarity between the files (actual similarity times 100)', required=True)
     parser.add_argument('-m', '--maxrel', help='Maximum number of relations per document (default: 20)', required=True, type=int, default=20)
     parser.add_argument('-o', '--output', help='Output file for the xml file with the document relations', required=True)
+    parser.add_argument('-p', '--corpus_pairs', help='Create relations from the pairs in the corpus only', required=False, type=bool, default=False)
     parser.add_argument('-r', '--html', help='Output file for readable html output', required=False)
     args = vars(parser.parse_args())
 
@@ -35,12 +36,12 @@ def read_arguments():
         sys.stderr.write(f"Directory '{corpusdir}' doesn't contain any files\n")
         exit( 2)
 
-    return (corpusdir, args["documentvectorfile"], int(args["similarity"]), args["maxrel"], args["output"], args["html"])
+    return (corpusdir, args["documentvectorfile"], int(args["similarity"]), args["maxrel"], args["output"], args["html"], args["corpus_pairs"])
 
 
 # Main part of the script
 if __name__ == '__main__':
-    (corpusdir, input, similarity, maxrel, output, html) = read_arguments()
+    (corpusdir, input, similarity, maxrel, output, html, corpus_pairs) = read_arguments()
 
     functions.show_message("Reading document vectors")
     dv = DocumentVectors.read(input)
@@ -53,9 +54,15 @@ if __name__ == '__main__':
     functions.show_message("Building index")
     distance_index.build()
 
+    if corpus_pairs:
+        pairs = corpus.read_document_pairs()
+    else:
+        pairs = None
+
     functions.show_message("Calculating distances")
-    relations = distance_index.calculate_relations_less_slow((float(similarity) / 100.0), maximum_number_of_results=maxrel)
+    relations = distance_index.calculate_relations_less_slow((float(similarity) / 100.0), maximum_number_of_results=maxrel, corpus_pairs=pairs)
     functions.show_message("Saving distances")
+
 
     nr_of_relations_per_document = float( len(relations.relations)) / float(corpus.get_number_of_documents())
     print(f"Ratio: {nr_of_relations_per_document} relations per document")

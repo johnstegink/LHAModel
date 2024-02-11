@@ -1,4 +1,5 @@
 # Class to read and write document relations
+import gc
 
 from Distances.DocumentRelation import DocumentRelation
 from lxml import etree as ET
@@ -6,8 +7,9 @@ import html
 import functions
 
 class DocumentRelations:
-    def __init__(self):
-        self.relations = []
+    def __init__(self, relations):
+        super( DocumentRelations)
+        self.relations = relations
         self.is_dirty = True
 
     def add(self, src, dest, similarity):
@@ -23,27 +25,36 @@ class DocumentRelations:
         self.is_dirty = True
 
 
-    def save(self, file, parameters):
+    def save(self, filename, parameters):
         """
         Save the relations in the given Xml file, the params are added ass attributes to the root node
-        :param file:the output file
+        :param filename:the output file
         :param parameters: dictionary of parameters
         :return:
         """
+
+        file = open(filename, mode="w", encoding="utf-8-sig")
+        file.write("<relations>\n")
 
         root = ET.fromstring("<relations></relations>")
         for (name, value) in parameters.items():
             root.set(name, value)
 
         for relation in self.relations:
-            document = ET.SubElement(root, "relation")
+            document = ET.fromstring("<relation></relation>")
 
             ET.SubElement(document, "src").text = relation.get_src()
             ET.SubElement(document, "dest").text = relation.get_dest()
             ET.SubElement(document, "similarity").text = str(relation.get_similarity())
 
-        # Write the file
-        functions.write_file( file, functions.xml_as_string(root))
+            file.write( functions.xml_as_string(document))
+            del document
+
+        # Write the end of the file
+        file.write("</relations>\n")
+        file.close()
+
+        functions.write_pickle( filename, self.relations)
 
 
     def save_html(self, src_corpus, output, dest_corpus = None, startof_id_filter = None):
@@ -88,15 +99,28 @@ class DocumentRelations:
         :param file: xml file, that was created with a save
         :return: Tuple (DocumentVectors object, attributes dictionary)
         """
-        dr = DocumentRelations()
-        root = ET.parse(file).getroot()
-        for document in root:
-            src = document.find("src").text
-            dest = document.find("dest").text
-            similarity = float(document.find("similarity").text)
-            dr.add( src, dest, similarity)
 
-        return (dr, root.attrib)
+        dr = functions.read_from_pickle( file, "dr")
+        attr = functions.read_from_pickle( file, "attr")
+        if dr is None or attr is None:
+            dr = DocumentRelations([])
+            root = ET.parse(file).getroot()
+            for document in root:
+                src = document.find("src").text
+                dest = document.find("dest").text
+                similarity = float(document.find("similarity").text)
+                dr.add( src, dest, similarity)
+
+            # copy the attributes
+            attr = {}
+            for name in root.attrib:
+                attr[name] = str(root.attrib[name])
+
+            functions.write_pickle( file, { "dr":dr, "attr": attr})
+        else:
+            if type(dr).__name__ == 'list': dr = DocumentRelations(dr)
+
+        return (dr, attr)
 
     def __iter__(self):
         """
@@ -162,3 +186,27 @@ class DocumentRelations:
                 return rel.get_similarity()
 
         return 0
+
+
+    def pair_is_available(self, src, dest):
+        """
+        Determines whether a pair is available
+        :param src:
+        :param dest:
+        :return:
+        """
+
+        for rel in self.relations:
+            if rel.get_src() == src  and  rel.get_dest() == dest:
+                return True
+
+        return False
+
+
+
+    def __len__(self):
+        """
+        The number of relations
+        :return:
+        """
+        return len( self.relations)

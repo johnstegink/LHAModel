@@ -14,13 +14,17 @@ from documentencoders.documentencoder import Documentencoder_base
 class AvgWord2VecEncoder(Documentencoder_base):
 
     WORD2VECMODELPATH_EN = "Pretrained/Word2Vec/GoogleNews-vectors-negative300.bin"
-    WORD2VECMODELPATH_NL = "Pretrained/Word2Vec/nl-combined-320.txt"
+    WORD2VECMODELPATH_NL = "Pretrained/Word2Vec/combined-320.txt"
     WORD2VECVECTORSIZE = 300
 
     def __init__(self, language_code):
         super(AvgWord2VecEncoder, self).__init__(language_code)
         modelpath = os.path.join(os.getcwd(), AvgWord2VecEncoder.WORD2VECMODELPATH_NL if language_code == "nl" else AvgWord2VecEncoder.WORD2VECMODELPATH_EN)
-        self.word2vec = KeyedVectors.load_word2vec_format(modelpath, binary=True)
+        if language_code == "en":
+            self.word2vec = KeyedVectors.load_word2vec_format(modelpath, binary=True)
+        elif language_code == "nl":
+            self.word2vec = KeyedVectors.load_word2vec_format(modelpath, binary=False)
+
         self.cleaner = Cleaner(language_code=self.language_code)
 
     def get_vector_size(self):

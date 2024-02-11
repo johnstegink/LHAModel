@@ -1,6 +1,5 @@
 # Class that contains functionality for computing the distance
 import numpy as np
-import pandas as pd
 import sklearn
 from tqdm import *
 
@@ -46,7 +45,7 @@ class DistanceIndex:
         :return: a object with document relations
         """
 
-        dr = DocumentRelations()
+        dr = DocumentRelations([])
         index_to_compare_to = second_index if not second_index is None else self
 
         for dv in self.documentvectors:
@@ -78,7 +77,7 @@ class DistanceIndex:
         vec1 = self.documentvectors.get_numpy_dict()
         vec2 = second_index.documentvectors.get_numpy_dict() if not second_index is None else self
 
-        dr = DocumentRelations()
+        dr = DocumentRelations([])
         with tqdm(total=len(vec1.keys()), desc="Distance calculation") as progress:
             for src_id in vec1.keys():
                 sims = []
@@ -96,13 +95,14 @@ class DistanceIndex:
 
         return dr
 
-    def calculate_relations_less_slow(self, minimal_similarity, second_index=None, maximum_number_of_results=100):
+    def calculate_relations_less_slow(self, minimal_similarity, second_index=None, maximum_number_of_results=100, corpus_pairs=None):
         """
         Determine the relations between the documents given the minimal distance, this is without using the ANN,
         but by using sklearn to compare to matrices
         :param minimal_similarity: value between 0 and 1
         :param second_index: The name of the index to compare to, if ommitted the index is compared to itself
         :param maximum_number_of_results:
+        :param corpus_pairs: Create relations for the pairs in the corpus only
         :return: a object with document relations
         """
 
@@ -115,16 +115,18 @@ class DistanceIndex:
         sims = orgsims
         last_sim_row = sims.shape[1]
 
-        sorted = sims.argsort()
-        dr = DocumentRelations()
+        dr = DocumentRelations([])
         for i1 in range(0, len(docids1)):
+            sorted = np.argsort( sims[i1]).tolist()
+            sorted.reverse() # We want to order descending
             for iSorted in range(0, min( last_sim_row, maximum_number_of_results)):
-                i2 = sorted[i1, last_sim_row - iSorted - 1]
+                i2 = sorted[iSorted]
                 if sims[i1, i2] >= minimal_similarity:
                     docid1 = docids1[i1]
                     docid2 = docids2[i2]
-                    if not(second_index is None) or docid1 != docid2:   # When camparing to the same index, skip identical documents
-                        dr.add(src=docid1, dest=docid2, similarity=sims[i1, i2])
+                    if corpus_pairs is None or corpus_pairs.pair_is_available( docid1, docid2):  # Only if we want this pair
+                        if not(second_index is None) or docid1 != docid2:   # When camparing to the same index, skip identical documents
+                            dr.add(src=docid1, dest=docid2, similarity=sims[i1, i2])
                 else:
                     break
 

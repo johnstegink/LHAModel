@@ -1,5 +1,8 @@
 # Class to read a corpus in the Common Format and iterates through documents
+import os.path
 import random
+
+import sklearn.model_selection
 
 import functions
 from Distances.DocumentRelations import DocumentRelations
@@ -131,6 +134,15 @@ class Corpus:
             return document
 
 
+    def has_document(self, id):
+        """
+        Checks whether the document with the given Id is in the corpus
+        :param id:
+        :return:
+        """
+        return id in self.files
+
+
     def read_similarities(self, single=False):
         """
         Return a new similarities object with all similarities in this corpus
@@ -175,14 +187,79 @@ class Corpus:
                 sims.add( src, dest, 0)
 
 
-    def read_document_pairs(self):
+    def read_document_pairs(self, shuffled, training_set=True, test_set=True):
         """
         returns the document pairs of the corpus that have manually been annotated
+        :param training_set: if true the training set will be included
+        :param test_set: if true the test set will be included
         :return: Documentrelations object
         """
 
-        dv = DocumentRelations()
-        for pair in functions.read_article_pairs( self.directory):
+        dv = DocumentRelations([])
+        self.create_training_test_pairs()
+        pairs = []
+        if training_set:
+            pairs += functions.read_article_pairs( self.directory, "pairs_train.tsv")
+
+        if test_set:
+            pairs += functions.read_article_pairs( self.directory, "pairs_test.tsv")
+
+        for pair in pairs:
             dv.add( pair[0], pair[1], pair[2])
 
         return dv
+
+
+    def create_training_test_pairs(self):
+        """
+        Create a training set and a test set if the files are older
+        than the pairs file
+        :return:
+        """
+
+        pairs_file = os.path.join(self.directory, "pairs.tsv")
+        train_file = os.path.join(self.directory, "pairs_train.tsv")
+        test_file = os.path.join(self.directory, "pairs_test.tsv")
+
+        # Create new files, only if necessary
+        if not self.file_exists_or_is_newer( train_file, pairs_file) or not self.file_exists_or_is_newer( test_file, pairs_file):
+            pairs = functions.read_article_pairs( self.directory)
+            X = []
+            Y = []
+            for pair in pairs:
+                X.append( (pair[0], pair[1]))
+                Y.append( pair[2])
+
+            X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split( X, Y, test_size=0.15, )
+            self.write_pairs( "pairs_train.tsv", X_train, Y_train )
+            self.write_pairs( "pairs_test.tsv", X_test, Y_test )
+
+
+    def file_exists_or_is_newer(self, file, cmpfile):
+        """
+        Checks wether a file exists or is newer than the cmpfile
+        :param file:
+        :param cmpfile:
+        :return:
+        """
+
+        if not os.path.isfile( file):
+            return False
+
+        return os.path.getmtime( file) > os.path.getmtime( cmpfile)
+
+    def write_pairs(self, file, X, Y):
+        """
+        Write the pairs aftere splitting into to a file
+        :param file:
+        :param X:
+        :param Y:
+        :return:
+        """
+
+        contents = ""
+        for i in range(len(X)):
+            contents += f"{X[i][0]}\t{X[i][1]}\t{Y[i]}\n"
+
+        functions.write_file(  os.path.join( self.directory, file), contents)
+

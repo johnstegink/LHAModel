@@ -1,6 +1,7 @@
 # Script to create relations the sections
 
 import argparse
+import gc
 import heapq
 import html
 
@@ -92,6 +93,8 @@ def determine_NN( relations, src, dest,  min_sim, K):
         for relation in filtered:
             relations.add_section( id, relation[0], relation[1])
 
+    del similarity
+    #gc.collect()
 
 
 def create_htmls( dsr, corpus,  outputdir):
@@ -190,10 +193,9 @@ if __name__ == '__main__':
     corpus = Corpus(directory=corpusdir)
     functions.show_message(f"The corpus contains {corpus.get_number_of_documents()} documents")
 
-    dsr = DocumentSectionRelations()
+    dsr = DocumentSectionRelations({})
 
-    debug = True
-    nrofdocuments = 100 if debug else dr.count()
+    nrofdocuments = dr.count()
 
     with tqdm(total=nrofdocuments, desc="Section similarity progess") as progress:
         cntr = 0
@@ -214,7 +216,7 @@ if __name__ == '__main__':
                 progress.update()
 
     dsr.save(output)
-    if not htmldir is None:
+    if not htmldir is None and not htmldir=="":
         print("creating html...")
         create_htmls( dsr, corpus, htmldir)
 

@@ -11,6 +11,11 @@
 #         ...
 #      </srcdoc>
 #   </sectionrelations>
+import gc
+import os.path
+import pickle
+
+from tqdm import tqdm
 
 from Distances.SectionRelations import SectionRelations
 from lxml import etree as ET
@@ -18,8 +23,8 @@ import html
 import functions
 
 class DocumentSectionRelations:
-    def __init__(self):
-        self.relations = {}   # Dictionary of relations, with the src as a key, and a list of relations as value
+    def __init__(self, relations):
+        self.relations = relations   # Dictionary of relations, with the src as a key, and a list of relations as value
 
     def add(self, src, dest, similarity):
         """
@@ -54,24 +59,32 @@ class DocumentSectionRelations:
         return []       # No relations
 
 
-    def save(self, file):
+    def save(self, filename):
         """
         Save the relations in the given Xml file
-        :param file:the output file
+        :param filename:the output file
         :return:
         """
 
-        root = ET.fromstring("<sectionrelations></sectionrelations>")
+        file = open(filename, mode="w", encoding="utf-8-sig")
+        file.write("<sectionrelations>\n")
 
         for src_doc in self.relations.keys():
-            src_doc_node = ET.SubElement(root, "srcdoc", attrib={"id": src_doc})
+            src_doc_node = ET.fromstring("<srcdoc></srcdoc>")
+            src_doc_node.attrib["id"] = src_doc
             for dest_doc in self.relations[src_doc]:
                 dest_doc_node = ET.SubElement(src_doc_node, "destdoc", attrib={"id": dest_doc.get_dest(), "similarity" : str(dest_doc.get_similarity())})
                 for sect_relation in dest_doc.get_relations():
                     ET.SubElement( dest_doc_node, "section", attrib={"src": sect_relation.get_src(), "dest": sect_relation.get_dest(), "similarity": str( sect_relation.get_similarity())})
 
-        # Write the file
-        functions.write_file( file, functions.xml_as_string(root))
+            file.write( functions.xml_as_string(src_doc_node))
+            del src_doc_node
+
+        # Write the end of the file
+        file.write("</sectionrelations>\n")
+        file.close()
+
+        functions.write_pickle(filename, self.relations)
 
 
     @staticmethod
@@ -82,12 +95,25 @@ class DocumentSectionRelations:
         :return: DocumentSectionsRelations object
         """
 
-        drs = DocumentSectionRelations()
-        root = ET.parse(file).getroot()
-        for src_doc in root:
-            for dest_doc in src_doc:
-                dest = drs.add( src_doc.attrib["id"], dest_doc.attrib["id"], float(dest_doc.attrib["similarity"]) )
-                for section in dest_doc:
-                    dest.add_section( section.attrib["src"], section.attrib["dest"], float( section.attrib["similarity"]))
+        drs = functions.read_from_pickle( file)
+        if drs is None:
+            drs = DocumentSectionRelations({})
+            print("Counting...")
+            nr_of_relations = functions.count_elements( file, "srcdoc")
+            with tqdm(total=nr_of_relations, desc="Reading relations") as progress:
+                for src_doc in functions.iterate_xml( file):
+                    for dest_doc in src_doc:
+                        dest = drs.add( src_doc.attrib["id"], dest_doc.attrib["id"], float(dest_doc.attrib["similarity"]) )
+                        for section in dest_doc:
+                            dest.add_section( section.attrib["src"], section.attrib["dest"], float( section.attrib["similarity"]))
+                    progress.update()
+
+            functions.write_pickle( file, drs)
+        else:
+            if type(drs).__name__ == 'dict': drs = DocumentSectionRelations(drs)
 
         return drs
+
+
+
+

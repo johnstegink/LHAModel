@@ -8,6 +8,8 @@ OUTDIR=/Volumes/Extern/Studie/studie/vectors
 source $VENVDIR/activate
 cd $CURRENT
 
+
+
 # Wikidata
 #$VENVDIR/python createvectors.py -c $COPRUSDIR/wikimatch_nl -o $OUTDIR/wikimatch_nl.xml -a "word2vec"
 #$VENVDIR/python createvectors.py -c $COPRUSDIR/gwikimatch_en -o $OUTDIR/gwikimatch_en_word2vec_300.xml -a "word2vec"

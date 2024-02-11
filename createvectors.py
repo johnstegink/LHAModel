@@ -1,8 +1,9 @@
-# Script to create embeddings from a document, similar to the LHA algorithm (Nikola I. Nikolov and Richard H.R. Hahnloser)
+# Script to create embeddings from a document and section, similar to the LHA algorithm (Nikola I. Nikolov and Richard H.R. Hahnloser)
 
 import argparse
 import collections
 
+from documentencoders.USEEncoder import USEEcoder
 from texts.corpus import Corpus
 from Distances.DistanceIndex import DistanceIndex
 import sys
@@ -13,6 +14,8 @@ from documentencoders.AvgWord2VecEncoder import AvgWord2VecEncoder
 from documentencoders.SBertencoder import SBertEcoder
 from Distances.DocumentVectors import  DocumentVectors
 from tqdm import *
+import tensorflow_text
+
 
 # import pydevd_pycharm
 #
@@ -24,7 +27,7 @@ def read_arguments():
     :return:
     """
 
-    parser = argparse.ArgumentParser(description='Create document embeddings.')
+    parser = argparse.ArgumentParser(description='# Script to create embeddings from a document and section, similar to the LHA algorithm (Nikola I. Nikolov and Richard H.R. Hahnloser).')
     parser.add_argument('-c', '--corpusdirectory', help='The corpus directory in the Common File Format', required=True)
     parser.add_argument('-a', '--algorithm', help='The embedding algorithm (default "sent2vec")', choices=["word2vec", "sent2vec", "sbert", "use"], default="sent2vec")
     parser.add_argument('-o', '--output', help='Output file for the xml file with the documentvectors', required=True)
@@ -54,7 +57,7 @@ def create_encoder( algorithm):
     elif algorithm == "sbert":
         encoder = SBertEcoder(corpus.get_language_code())
     elif algorithm == "use":
-        encoder = SBertEcoder(corpus.get_language_code())
+        encoder = USEEcoder(corpus.get_language_code())
     elif algorithm == "word2vec":
         encoder = AvgWord2VecEncoder(corpus.get_language_code())
     else:
@@ -76,7 +79,7 @@ if __name__ == '__main__':
     encoder = create_encoder( algorithm)
 
     functions.show_message("Document and sector vectors")
-    documentvectors = DocumentVectors()
+    documentvectors = DocumentVectors({})
     with tqdm(total=corpus.get_number_of_documents(), desc="Total progress") as progress:
         for document in corpus:
             text = document.get_fulltext_in_one_line()
